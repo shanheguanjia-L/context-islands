@@ -14,6 +14,8 @@
 
 **線上直接玩：<https://shanheguanjia-l.github.io/context-islands/>**
 
+**简体中文版：<https://shanheguanjia-l.github.io/context-islands/zh-hans/>**（頁面右上角可隨時切換，進度兩版共用）
+
 也可以離線使用：
 
 1. 下載整個資料夾，用瀏覽器打開 `index.html`（不需要網路、不需要安裝）。
@@ -44,6 +46,7 @@
 - `index.html`：畫面、進度、番茄鐘、咒語書匯出。
 - `data.js`：全部教學內容（謎題、原理、實驗提示詞、抽問、Boss 案例）。**改內容只要改這個檔。**
 - `課程設計.md`：完整課程設計原稿（給講師與管理者）。
+- `zh-hans/`：簡體中文版，由 `tools/build_zh_hans.py` 從繁體版自動產生（OpenCC 台灣正體轉大陸簡體，再補上課程用語修正）。**不要直接改這個資料夾**，改繁體版後重跑腳本。
 
 ## 參與貢獻
 

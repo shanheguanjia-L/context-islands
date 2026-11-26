@@ -1,0 +1,653 @@
+<!DOCTYPE html>
+<html lang="zh-Hans">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>脉络群岛｜提示词工程与上下文工程：从零到内化</title>
+<style>
+:root{
+  --ink:#14212b; --ink2:#4a5a66; --line:#d9d0bb;
+  --paper:#f6f1e4; --card:#fffdf7; --sea:#123247; --sea2:#1e5470; --foam:#e3eef2;
+  --coral:#c8553d; --gold:#b8892a; --ok:#2f7a4f; --warn:#a8442f;
+  --r:10px;
+  --serif:"Songti TC","Noto Serif TC","PMingLiU",serif;
+  --sans:"PingFang TC","Noto Sans TC","Microsoft JhengHei",system-ui,sans-serif;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{font-family:var(--sans);color:var(--ink);background:var(--paper);line-height:1.7;font-size:16px}
+a{color:var(--sea2)}
+button{font:inherit;cursor:pointer}
+header.top{background:var(--sea);color:#f3efe2;padding:14px 20px;display:flex;gap:16px;align-items:center;flex-wrap:wrap;position:sticky;top:0;z-index:20}
+header.top h1{font-family:var(--serif);font-size:20px;margin:0;letter-spacing:.06em;cursor:pointer}
+header.top .sub{font-size:13px;opacity:.75}
+header.top nav{margin-left:auto;display:flex;gap:6px;flex-wrap:wrap}
+header.top nav button{background:transparent;color:#f3efe2;border:1px solid rgba(243,239,226,.35);border-radius:999px;padding:4px 14px;font-size:14px}
+header.top nav button.on{background:#f3efe2;color:var(--sea)}
+header.top nav a.lang{color:#f0c96a;font-size:14px;padding:4px 10px;text-decoration:none;border-bottom:1px dashed rgba(240,201,106,.6);border-radius:0}
+.stats{display:flex;gap:14px;font-size:13px;opacity:.9}
+@media (max-width:720px){header.top{position:static;padding:10px 14px;gap:8px}header.top nav{margin-left:0}}
+.stats b{font-size:15px;color:#f0c96a}
+main{max-width:1040px;margin:0 auto;padding:24px 18px 140px}
+h2{font-family:var(--serif);font-size:26px;margin:.2em 0 .4em;letter-spacing:.03em}
+h3{font-family:var(--serif);font-size:19px;margin:1.2em 0 .4em}
+.lead{color:var(--ink2);max-width:62ch}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:18px 20px;margin:14px 0}
+.muted{color:var(--ink2);font-size:14px}
+.pill{display:inline-block;font-size:12px;padding:1px 10px;border-radius:999px;border:1px solid var(--line);color:var(--ink2);background:#fff}
+.pill.ok{border-color:var(--ok);color:var(--ok)}
+.pill.warn{border-color:var(--warn);color:var(--warn)}
+.pill.gold{border-color:var(--gold);color:var(--gold)}
+.btn{background:var(--sea);color:#fff;border:0;border-radius:8px;padding:8px 16px;font-size:15px}
+.btn:hover{background:var(--sea2)}
+.btn.ghost{background:transparent;color:var(--sea);border:1px solid var(--sea)}
+.btn.small{padding:4px 10px;font-size:13px}
+.btn.coral{background:var(--coral)}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+textarea,input[type=text]{width:100%;font:inherit;font-size:15px;padding:10px 12px;border:1px solid var(--line);border-radius:8px;background:#fff;color:var(--ink)}
+textarea{min-height:90px;resize:vertical}
+label.f{display:block;font-weight:600;margin:12px 0 4px;font-size:15px}
+.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media (max-width:720px){.grid2{grid-template-columns:1fr}}
+
+/* 地图 */
+.legend{display:flex;gap:10px;flex-wrap:wrap;font-size:13px;color:var(--ink2);margin:6px 0 14px}
+.map{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:14px;counter-reset:isl}
+.isl{position:relative;background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:14px 16px 14px;text-align:left;color:var(--ink);min-height:150px;display:flex;flex-direction:column;gap:4px;transition:transform .12s,box-shadow .12s}
+.isl:hover:not(:disabled){transform:translateY(-2px);box-shadow:0 6px 18px rgba(18,50,71,.12)}
+.isl .wk{font-size:12px;color:var(--ink2);letter-spacing:.08em}
+.isl .nm{font-family:var(--serif);font-size:20px;font-weight:700}
+.isl .bs{font-size:14px;color:var(--coral)}
+.isl .tp{font-size:13px;color:var(--ink2)}
+.isl .foot{margin-top:auto;display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.isl:disabled{opacity:.45;cursor:not-allowed}
+.isl.passed{border-color:var(--gold);background:linear-gradient(#fffdf7,#fbf3df)}
+.isl.dim{filter:grayscale(.85);opacity:.75}
+.seal{position:absolute;top:12px;right:12px;width:46px;height:46px;border-radius:50%;border:2px solid var(--gold);color:var(--gold);display:flex;align-items:center;justify-content:center;font-family:var(--serif);font-size:12px;line-height:1.1;text-align:center;padding:4px;transform:rotate(-8deg)}
+.isl.dim .seal{border-color:#999;color:#999}
+
+/* 岛内 */
+.crumb{font-size:14px;color:var(--ink2);margin-bottom:6px}
+.crumb a{cursor:pointer}
+.islhead{display:flex;justify-content:space-between;align-items:flex-start;gap:14px;flex-wrap:wrap}
+.tabs{display:flex;gap:6px;flex-wrap:wrap;margin:16px 0 6px;border-bottom:1px solid var(--line);padding-bottom:8px}
+.tab{background:transparent;border:1px solid var(--line);border-radius:8px;padding:6px 12px;font-size:14px;color:var(--ink2)}
+.tab.on{background:var(--sea);color:#fff;border-color:var(--sea)}
+.tab.done::after{content:" ✓";color:var(--ok);font-weight:700}
+.tab.on.done::after{color:#bfe8cf}
+.roundhead{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.roundhead .rn{font-family:var(--serif);font-size:13px;color:var(--coral);letter-spacing:.1em}
+.why{font-size:14px;color:var(--ink2);border-left:3px solid var(--line);padding-left:10px;margin:8px 0}
+.puzzle{font-family:var(--serif);font-size:19px;line-height:1.8;background:var(--sea);color:#f3efe2;border-radius:var(--r);padding:20px 22px}
+.puzzle .tag{display:inline-block;font-family:var(--sans);font-size:12px;letter-spacing:.1em;color:#f0c96a;margin-bottom:6px}
+.opts{display:flex;flex-direction:column;gap:8px;margin:12px 0}
+.opt{display:flex;gap:10px;align-items:flex-start;border:1px solid var(--line);border-radius:8px;padding:10px 12px;background:#fff;cursor:pointer;text-align:left}
+.opt input{margin-top:6px}
+.opt.right{border-color:var(--ok);background:#eef7f1}
+.opt.wrong{border-color:var(--warn);background:#fbeeea}
+.principle li{margin:6px 0}
+.chainpool,.chainout{display:flex;flex-direction:column;gap:6px;min-height:40px}
+.chip{border:1px dashed var(--sea2);background:#fff;border-radius:8px;padding:8px 12px;text-align:left;color:var(--ink)}
+.chainout .chip{border-style:solid;background:var(--foam)}
+.chainout .chip::before{content:attr(data-n) "　";color:var(--coral);font-weight:700}
+.prompt{position:relative;background:#1b2a35;color:#e9e4d4;border-radius:8px;padding:12px 14px 12px;font-family:"SF Mono",Menlo,Consolas,monospace;font-size:13.5px;white-space:pre-wrap;margin:8px 0}
+.prompt .cp{position:absolute;top:8px;right:8px}
+.score{display:grid;grid-template-columns:110px repeat(4,1fr);gap:4px;font-size:13px;align-items:stretch}
+.score .h{font-weight:700;padding:6px;background:var(--foam);border-radius:6px}
+.score .lab{font-weight:700;padding:6px;display:flex;align-items:center}
+.score button{border:1px solid var(--line);background:#fff;border-radius:6px;padding:6px;text-align:left;font-size:12.5px;color:var(--ink2)}
+.score button.on{border-color:var(--sea);background:var(--sea);color:#fff}
+@media (max-width:720px){.score{grid-template-columns:70px repeat(4,1fr);font-size:12px}.score button{font-size:11px;padding:4px}}
+.levels{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:10px 0}
+.lv{border:1px solid var(--line);border-radius:8px;padding:10px;background:#fff;font-size:13px}
+.lv b{display:block;font-size:14px}
+.lv.ok{border-color:var(--ok);background:#eef7f1}
+@media (max-width:720px){.levels{grid-template-columns:1fr 1fr}}
+.result{border-radius:8px;padding:12px 14px;margin:10px 0}
+.result.ok{background:#eef7f1;border:1px solid var(--ok)}
+.result.bad{background:#fbeeea;border:1px solid var(--warn)}
+.swan{background:#22313c;color:#efe9d8;border-radius:var(--r);padding:18px 20px}
+.swan .tag{color:#f0c96a;font-size:12px;letter-spacing:.1em}
+table.gold{width:100%;border-collapse:collapse;font-size:14px}
+table.gold th,table.gold td{border-bottom:1px solid var(--line);padding:6px;text-align:left;vertical-align:middle}
+table.gold input[type=text]{padding:5px 8px;font-size:14px}
+table.gold td.c{text-align:center;width:52px}
+
+/* 番茄钟 */
+.pomo{position:fixed;right:16px;bottom:16px;z-index:30;background:var(--card);border:1px solid var(--line);border-radius:14px;box-shadow:0 10px 28px rgba(18,50,71,.18);padding:12px 14px;width:250px}
+.pomo .t{font-family:var(--serif);font-size:34px;font-weight:700;text-align:center;letter-spacing:.04em;font-variant-numeric:tabular-nums}
+.pomo .m{font-size:12px;text-align:center;color:var(--ink2)}
+.pomo .row{justify-content:center;margin-top:6px}
+.pomo.brk{background:#eef7f1;border-color:var(--ok)}
+.pomo.mini{width:auto;padding:8px 12px}
+.pomo.mini .full{display:none}
+.pomo .minit{display:none;font-weight:700;font-variant-numeric:tabular-nums}
+.pomo.mini .minit{display:inline}
+.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--sea);color:#fff;padding:10px 18px;border-radius:999px;font-size:14px;z-index:40;opacity:0;transition:opacity .2s;pointer-events:none}
+.toast.on{opacity:1}
+dialog{border:1px solid var(--line);border-radius:12px;max-width:520px;width:92%;padding:20px;background:var(--card);color:var(--ink)}
+dialog::backdrop{background:rgba(18,50,71,.4)}
+.book h3{border-bottom:1px solid var(--line);padding-bottom:4px}
+.book .q{font-weight:700;font-size:14px;margin-top:8px}
+.book .a{white-space:pre-wrap;font-size:15px}
+.empty{color:#9a9384;font-style:italic}
+@media print{header.top,.pomo,.toast,.row .btn{display:none!important}body{background:#fff}main{padding:0}.card{border:0}}
+</style>
+</head>
+<body>
+<header class="top">
+  <div>
+    <h1 onclick="go('map')">脉络群岛</h1>
+    <div class="sub">提示词工程与上下文工程：从零到内化</div>
+  </div>
+  <div class="stats" aria-live="polite">
+    <span>徽章 <b id="sBadge">0</b>/12</span>
+    <span>预测点 <b id="sPts">0</b></span>
+    <span>番茄钟 <b id="sPomo">0</b></span>
+  </div>
+  <nav>
+    <button data-v="map" onclick="go('map')">航海图</button>
+    <button data-v="guide" onclick="go('guide')">怎么玩</button>
+    <button data-v="book" onclick="go('book')">咒语书</button>
+    <button data-v="log" onclick="go('log')">纪录</button>
+    <a class="lang" href="../" onclick="this.href=this.getAttribute('href')+location.hash" lang="zh-Hans">繁體中文</a>
+  </nav>
+</header>
+
+<main id="app"></main>
+
+<div class="pomo" id="pomo">
+  <div class="full">
+    <div class="m" id="pMode">专注 25 分钟・一次只做一件事</div>
+    <div class="t" id="pTime">25:00</div>
+    <div class="m" id="pCtx">未绑定回合</div>
+    <div class="row">
+      <button class="btn small" id="pStart">开始</button>
+      <button class="btn small ghost" id="pReset">重设</button>
+      <button class="btn small ghost" id="pInt" title="记下被打断的原因">被打断</button>
+    </div>
+  </div>
+  <div class="row" style="margin:0">
+    <span class="minit" id="pMini">25:00</span>
+    <button class="btn small ghost" id="pFold" style="margin-left:auto">收合</button>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+<dialog id="dlg"></dialog>
+
+<script src="data.js"></script>
+<script>
+"use strict";
+const KEY = "context-islands-v1";
+const DAY = 86400000;
+const ROUNDS = [
+  ["P1","侦察","谜题与预测"],
+  ["P2","解码","原理拆解"],
+  ["P3","实验室","预测—实验—对照"],
+  ["P4","传授对决","费曼讲解"],
+  ["P5","补给","补漏与模拟"],
+  ["P6","Boss 战","验收"]
+];
+const RUBRIC = [
+  ["准确性", ["有重大错误","大致正确但含糊","正确","正确且能指出限制"]],
+  ["简单性", ["大量未解释术语","术语多","术语都有解释","12 岁孩子听得懂"]],
+  ["模拟",   ["无","模拟不贴切","模拟贴切","贴切且说明何处不适用"]],
+  ["因果",   ["只说“是什么”","有“因为”但跳步","因果链完整","完整且能预测变化"]],
+  ["追问",   ["答不出","答一半","答得出","答得出且能延伸到新情境"]]
+];
+
+/* ---------- 状态 ---------- */
+let S = load();
+function blank(){ return { v:1, free:false, pts:0, pomos:0, interrupts:[], isl:{} }; }
+function load(){
+  try { const s = JSON.parse(localStorage.getItem(KEY)); if (s && s.v===1) return s; } catch(e){}
+  return blank();
+}
+function save(){ localStorage.setItem(KEY, JSON.stringify(S)); stats(); }
+function I(id){ if(!S.isl[id]) S.isl[id] = {round:0, p1:{}, p2:{}, p3:{}, p4:{scores:[-1,-1,-1,-1,-1]}, p5:{}, p6:{boss:0, bossTries:[]}, f:{}, rubric:{}, swan:"", awarded:{}}; return S.isl[id]; }
+function award(st, key, n){ if(!st.awarded[key]){ st.awarded[key]=1; S.pts += n; toast("+"+n+" 预测点"); } }
+
+/* ---------- 工具 ---------- */
+const $ = s => document.querySelector(s);
+const esc = s => String(s==null?"":s).replace(/[&<>"]/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const len = s => (s||"").trim().length;
+const js = v => esc(JSON.stringify(v)).replace(/'/g,"&#39;");
+function toast(m){ const t=$("#toast"); t.textContent=m; t.classList.add("on"); clearTimeout(toast.h); toast.h=setTimeout(()=>t.classList.remove("on"),1800); }
+function copy(text){
+  const done = ()=>toast("已拷贝，贴到你的 AI 工具试试");
+  if (navigator.clipboard && window.isSecureContext) navigator.clipboard.writeText(text).then(done, ()=>fallback());
+  else fallback();
+  function fallback(){ const ta=document.createElement("textarea"); ta.value=text; document.body.appendChild(ta); ta.select(); try{document.execCommand("copy"); done();}catch(e){toast("拷贝失败，请手动选取");} ta.remove(); }
+}
+function shuffleIdx(n, seed){ const a=[...Array(n).keys()]; let x=seed||Date.now(); for(let i=n-1;i>0;i--){ x=(x*9301+49297)%233280; const j=Math.floor(x/233280*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
+function isl(id){ return ISLANDS.find(x=>x.id===id); }
+const ord = (n, seed) => shuffleIdx(n, seed*131+17);
+
+/* ---------- 通关判定（内化四层次） ---------- */
+function levels(id){
+  const d = isl(id), st = I(id);
+  if (d.final){
+    const filled = FINAL_ROUNDS.every(r=>r.fields.every(f=>len(st.f[f[0]])>=10));
+    const rub = FINAL_RUBRIC.every(r=>st.rubric[r[0]]!=null);
+    const score = FINAL_RUBRIC.reduce((a,r)=>a+(st.rubric[r[0]]||0)*r[1]/3,0);
+    const bossOK = !!st.p6.finalOK;
+    return {L1:filled, L2:rub && score>=60, L3:filled && bossOK, L4:bossOK, score:Math.round(score)};
+  }
+  const q = st.p6.quizScore||0;
+  const sc = st.p4.scores, avg = sc.every(x=>x>=0) ? sc.reduce((a,b)=>a+b,0)/5 : -1;
+  return {
+    L1: q>=3,
+    L2: avg>=2 && len(st.p4.text)>=60,
+    L3: len(st.p1.reason)>=8 && len(st.p3.result)>=8 && len(st.p3.gap)>=8,
+    L4: !!st.p6.bossOK,
+    avg
+  };
+}
+function passed(id){ if(!S.isl[id]) return false; const L=levels(id); return L.L1&&L.L2&&L.L3&&L.L4; }
+function roundDone(id, r){
+  const d=isl(id), st=I(id);
+  if (d.final) return FINAL_ROUNDS[r].fields.every(f=>len(st.f[f[0]])>=10) && (r<5 || !!st.p6.finalOK);
+  switch(r){
+    case 0: return st.p1.choice!=null && len(st.p1.reason)>=8;
+    case 1: return !!st.p2.chainOK;
+    case 2: return len(st.p3.result)>=8 && len(st.p3.gap)>=8;
+    case 3: return levels(id).L2;
+    case 4: return len(st.p5.stuck)>=4 && len(st.p5.analogy)>=8 && len(st.p5.limit)>=4;
+    case 5: return levels(id).L1 && levels(id).L4;
+  }
+}
+function unlocked(id){ return S.free || id===1 || passed(id-1); }
+function isDim(id){ const st=S.isl[id]; return st && st.passedAt && (Date.now()-(st.lastReview||st.passedAt) > 7*DAY); }
+function checkPass(id){
+  const st=I(id);
+  if (passed(id) && !st.passedAt){
+    st.passedAt = st.lastReview = Date.now(); save();
+    const d=isl(id);
+    showDlg(`<h2>通关：${esc(d.name)}</h2><p>你取得了徽章“<b>${esc(d.badge)}</b>”。</p>
+      <p class="muted">提醒：超过 7 天没复习，徽章会在航海图上变暗（知识城堡风化）。回来答对一题“修城”就能恢复。</p>
+      ${d.final?"":`<p>下一站：${esc((isl(id+1)||{}).name||"")}</p>`}
+      <div class="row"><button class="btn" onclick="closeDlg();go('map')">回航海图</button><button class="btn ghost" onclick="closeDlg()">留在这里</button></div>`);
+  }
+}
+
+/* ---------- 路由 ---------- */
+let view = {name:"map"};
+function go(name, id){ view = {name, id}; if(id) I(id); render(); window.scrollTo(0,0); location.hash = id? name+"/"+id : name; }
+function fromHash(){ const [n,i]=location.hash.slice(1).split("/"); if(n==="island" && +i && (unlocked(+i))) view={name:n,id:+i}; else if(["map","guide","book","log"].includes(n)) view={name:n}; }
+function render(){
+  document.querySelectorAll("header nav button").forEach(b=>b.classList.toggle("on", b.dataset.v===view.name));
+  const app=$("#app");
+  if (view.name==="island") app.innerHTML = islandView(view.id);
+  else if (view.name==="guide") app.innerHTML = guideView();
+  else if (view.name==="book") app.innerHTML = bookView();
+  else if (view.name==="log") app.innerHTML = logView();
+  else app.innerHTML = mapView();
+  stats();
+  if (view.name==="island"){ bindPomoCtx(); checkPass(view.id); }
+}
+function stats(){
+  $("#sBadge").textContent = ISLANDS.filter(d=>passed(d.id)).length;
+  $("#sPts").textContent = S.pts; $("#sPomo").textContent = S.pomos;
+}
+
+/* ---------- 航海图 ---------- */
+function mapView(){
+  const n = ISLANDS.filter(d=>passed(d.id)).length;
+  const dims = ISLANDS.filter(d=>isDim(d.id));
+  return `
+  <h2>模型之海航海图</h2>
+  <p class="lead">你是一名“AI 驯服师学徒”。王国的人想用 AI，却不敢信任它。每座岛上住着一只“失效怪物”——一种真实的 AI 失败方式。<b>打赢的方法只有一个：讲得出它为什么会发生。</b></p>
+  ${n===0 && !S.isl[1] ? `<div class="card"><b>第一次来？</b> 先花两分钟看“<a href="#guide" onclick="go('guide');return false">怎么玩</a>”，再从初始之港出发。每座岛约 6 颗番茄钟（含休息约 3 小时），可以分几天完成。</div>`:""}
+  ${dims.length? `<div class="card" style="border-color:var(--warn)"><b>知识城堡风化中：</b>${dims.map(d=>esc(d.name)).join("、")} 超过 7 天没复习。<button class="btn small coral" onclick="repair(${dims[0].id})">修城：答一题</button></div>`:""}
+  <div class="legend"><span class="pill">未解锁</span><span class="pill warn">进行中</span><span class="pill gold">已通关</span><span class="pill">变灰＝需要复习</span>
+    <label style="margin-left:auto"><input type="checkbox" ${S.free?"checked":""} onchange="S.free=this.checked;save();render()"> 自由模式（全部解锁，适合讲师备课）</label></div>
+  <div class="map">
+  ${ISLANDS.map(d=>{
+    const st=S.isl[d.id], ok=passed(d.id), un=unlocked(d.id), dim=isDim(d.id);
+    const doneN = st ? ROUNDS.filter((r,i)=>roundDone(d.id,i)).length : 0;
+    return `<button class="isl ${ok?"passed":""} ${dim?"dim":""}" ${un?"":"disabled"} onclick="go('island',${d.id})" aria-label="第 ${d.id} 周 ${esc(d.name)}">
+      ${ok?`<div class="seal">${esc(d.badge)}</div>`:""}
+      <span class="wk">第 ${d.id} 周・${esc(d.stage)}</span>
+      <span class="nm">${esc(d.name)}</span>
+      <span class="bs">Boss：${esc(d.boss)}</span>
+      <span class="tp">${esc(d.topic)}</span>
+      <span class="foot">${ok?`<span class="pill gold">已通关</span>`: un? (st?`<span class="pill warn">${doneN}/6 回合</span>`:`<span class="pill">可出发</span>`) : `<span class="pill">未解锁</span>`}
+      ${dim?`<span class="pill warn">需修城</span>`:""}</span>
+    </button>`;}).join("")}
+  </div>`;
+}
+
+/* ---------- 岛内 ---------- */
+function islandView(id){
+  const d=isl(id), st=I(id);
+  if (!unlocked(id)) return `<p>这座岛还没解锁。</p>`;
+  const r = st.round;
+  const tabs = (d.final? FINAL_ROUNDS.map((f,i)=>["P"+(i+1), f.title]) : ROUNDS).map((x,i)=>
+    `<button class="tab ${i===r?"on":""} ${roundDone(id,i)?"done":""}" onclick="setRound(${id},${i})">${x[0]} ${esc(x[1])}</button>`).join("");
+  const L=levels(id);
+  return `
+  <div class="crumb"><a onclick="go('map')">← 航海图</a></div>
+  <div class="islhead">
+    <div><h2>第 ${d.id} 岛・${esc(d.name)}</h2>
+      <div class="muted">${esc(d.topic)}　｜　Boss：<b style="color:var(--coral)">${esc(d.boss)}</b>　｜　徽章：${esc(d.badge)}</div>
+      <div class="muted">必须内化：${esc(d.core)}</div></div>
+    ${passed(id)?`<span class="pill gold">已通关</span>`:""}
+  </div>
+  <div class="levels">
+    ${(d.final?[["交付物","六个回合都写完",L.L1],["说明","毕业评分 ≥ 60 分",L.L2],["证据","交付物＋综合诊断",L.L3],["最终 Boss","综合诊断 3 题全对",L.L4]]:[["层次 1 复述","抽问 4 题答对 3 题",L.L1],["层次 2 解释","费曼讲解平均 ≥ 2 分",L.L2],["层次 3 预测","预测有理由、落差有原因",L.L3],["层次 4 诊断","Boss 战诊断成功",L.L4]])
+      .map(x=>`<div class="lv ${x[2]?"ok":""}"><b>${x[0]} ${x[2]?"✓":""}</b>${x[1]}</div>`).join("")}
+  </div>
+  <div class="tabs" role="tablist">${tabs}</div>
+  <section>${d.final? finalRound(id,r) : roundView(id,r)}</section>
+  <div class="row" style="justify-content:space-between;margin-top:18px">
+    <button class="btn ghost" ${r===0?"disabled":""} onclick="setRound(${id},${r-1})">← 上一回合</button>
+    <button class="btn ghost" onclick="pomoFor(${id},${r})">用番茄钟专注这一回合</button>
+    <button class="btn" ${r===5?"disabled":""} onclick="setRound(${id},${r+1})">下一回合 →</button>
+  </div>`;
+}
+function setRound(id,r){ I(id).round=r; save(); render(); window.scrollTo(0,0); }
+function head(n, title, why){ return `<div class="roundhead"><span class="rn">${n}</span><h3 style="margin:.2em 0">${title}</h3></div>${why?`<div class="why">${why}</div>`:""}`; }
+
+function roundView(id, r){
+  const d=isl(id), st=I(id);
+  if (r===0){
+    const p=d.puzzle;
+    return `${head("P1 侦察","谜题与预测","先猜，再学。<b>预测错误是最有价值的学习时刻</b>——前提是你先写下理由。这一回合不会告诉你答案。")}
+    <div class="puzzle"><span class="tag">怪物现身卡・${esc(d.boss)}</span><br>${esc(p.text)}</div>
+    <div class="opts">${ord(p.options.length,id).map(i=>`<label class="opt"><input type="radio" name="p1" ${st.p1.choice===i?"checked":""} onchange="I(${id}).p1.choice=${i};save()"> <span>${esc(p.options[i])}</span></label>`).join("")}</div>
+    <label class="f" for="p1r">我预测……因为……（写下你的理由，至少一句）</label>
+    <textarea id="p1r" oninput="I(${id}).p1.reason=this.value;save()" placeholder="例如：我猜是 B，因为……">${esc(st.p1.reason)}</textarea>
+    <div class="row" style="margin-top:10px"><button class="btn" onclick="lockP1(${id})">押下预测点</button>
+    ${st.p1.locked?`<span class="pill ok">已押注，到 P2 解码看答案</span>`:""}</div>`;
+  }
+  if (r===1){
+    const p=d.puzzle, ord = st.p2.order||[], pool = shuffleIdx(d.chain.length, id*7+3).filter(i=>!ord.includes(i));
+    return `${head("P2 解码","原理拆解","读完原理后，把因果链按顺序拼起来，拼出你自己的“原理地图”。")}
+    ${st.p1.locked||st.p1.choice!=null ? `<div class="result ${st.p1.choice===p.answer?"ok":"bad"}">谜题答案：<b>${esc(p.options[p.answer])}</b><br>你在 P1 选的是：${esc(p.options[st.p1.choice]??"（未作答）")}${st.p1.choice===p.answer?"　→ 预测正确。":"　→ 预测错了，很好：读完下面的原理，在 P3 写下你当初卡在哪。"}</div>`:""}
+    <div class="card"><ul class="principle">${d.principle.map(x=>`<li>${x}</li>`).join("")}</ul></div>
+    <h3>拼出原理地图</h3>
+    <p class="muted">依因果顺序，点击下方的卡片。点错了按“重排”。</p>
+    <div class="grid2"><div><div class="muted">待排</div><div class="chainpool">${pool.map(i=>`<button class="chip" onclick="pickChain(${id},${i})">${esc(d.chain[i])}</button>`).join("")||`<span class="empty">全部排完</span>`}</div></div>
+    <div><div class="muted">你的顺序</div><div class="chainout">${ord.map((i,k)=>`<div class="chip" data-n="${k+1}">${esc(d.chain[i])}</div>`).join("")||`<span class="empty">从左边点击</span>`}</div></div></div>
+    <div class="row" style="margin-top:10px"><button class="btn ghost small" onclick="I(${id}).p2.order=[];I(${id}).p2.chainOK=false;save();render()">重排</button>
+    ${st.p2.chainOK?`<span class="pill ok">因果链正确</span>`: (ord.length===d.chain.length?`<span class="pill warn">顺序不对，想想“先有什么，才导致什么”</span>`:"")}</div>`;
+  }
+  if (r===2){
+    const lab=d.lab;
+    return `${head("P3 实验室","预测—实验—对照","打开你平常用的 AI 对话工具，照步骤做。<b>每一步都先预测，再运行。</b>预测准确或写出落差原因，都有分数。")}
+    <div class="card"><b>实验目标：</b>${esc(lab.goal)}<ol>${lab.steps.map(s=>`<li>${esc(s)}</li>`).join("")}</ol></div>
+    ${lab.prompts.map((p,i)=>`<div class="muted">提示词 ${i+1}</div><div class="prompt"><button class="btn small ghost cp" style="background:#f3efe2" onclick="copy(${js(p)})">拷贝</button>${esc(p)}</div>`).join("")}
+    ${lab.golden? goldenTable(id):""}
+    <h3>实验记录表</h3>
+    <label class="f">我的预测（跑之前写）</label>
+    <textarea oninput="I(${id}).p3.pred=this.value;save()" placeholder="我预测……因为……">${esc(st.p3.pred)}</textarea>
+    <label class="f">实际结果</label>
+    <textarea oninput="I(${id}).p3.result=this.value;save()" placeholder="实际上……">${esc(st.p3.result)}</textarea>
+    <label class="f">落差原因（预测和结果哪里不同？为什么？如果完全一样，写下是哪个原理让你猜对）</label>
+    <textarea oninput="I(${id}).p3.gap=this.value;save()" placeholder="我原本以为……其实是因为……">${esc(st.p3.gap)}</textarea>
+    <div class="row" style="margin-top:10px"><button class="btn" onclick="submitP3(${id})">送出实验记录</button></div>`;
+  }
+  if (r===3){
+    const sc=st.p4.scores, L=levels(id);
+    const ask = `你是一位 12 岁的学生，对 AI 完全不懂。我会跟你解释：“${d.feynman}”\n请你只用 12 岁孩子的程度，追问我 2 个问题，专挑我讲得模糊、用了术语没解释、或因果跳步的地方。先不要评价，只问问题。\n\n我的讲解：\n${st.p4.text||"（粘贴你的讲解）"}`;
+    return `${head("P4 传授对决","费曼讲解","<b>教不出来，就是还没懂。</b>用 12 岁孩子听得懂的话讲一分钟。有伙伴就互相讲、互相评；自学就写下来，再请 AI 扮演 12 岁孩子追问你。完成后建议长休 20 分钟。")}
+    <div class="puzzle"><span class="tag">费曼题・讲给非技术同事听</span><br>${esc(d.feynman)}</div>
+    <label class="f">我的一分钟讲解（约 150 到 250 字；不准用没解释的术语）</label>
+    <textarea style="min-height:150px" oninput="I(${id}).p4.text=this.value;save();document.getElementById('cnt').textContent=this.value.trim().length">${esc(st.p4.text)}</textarea>
+    <div class="muted">字数：<span id="cnt">${len(st.p4.text)}</span></div>
+    <div class="row" style="margin:10px 0"><button class="btn ghost" onclick="copy(${js(ask)})">拷贝“12 岁孩子追问”提示词</button><span class="muted">把追问贴回来，试着回答；答不出的地方记到 P5。</span></div>
+    <label class="f">追问与我的回答</label>
+    <textarea oninput="I(${id}).p4.followup=this.value;save()" placeholder="问：……　我答：……">${esc(st.p4.followup)}</textarea>
+    <h3>评分表（伙伴评，或诚实自评）</h3>
+    <div class="score">
+      <div class="h">项目</div>${[0,1,2,3].map(n=>`<div class="h">${n} 分</div>`).join("")}
+      ${RUBRIC.map((row,i)=>`<div class="lab">${row[0]}</div>${row[1].map((t,n)=>`<button class="${sc[i]===n?"on":""}" onclick="setScore(${id},${i},${n})">${t}</button>`).join("")}`).join("")}
+    </div>
+    <div class="result ${L.L2?"ok":"bad"}" style="margin-top:12px">平均：<b>${L.avg>=0?L.avg.toFixed(1):"尚未评完"}</b>（需 ≥ 2，且讲解至少 60 字）。${L.L2?"层次 2 通过。":"0 或 1 分的项目，就是 P5 要回头补的缺口。"}</div>`;
+  }
+  if (r===4){
+    const low = RUBRIC.map((x,i)=>[x[0],st.p4.scores[i]]).filter(x=>x[1]>=0&&x[1]<2).map(x=>x[0]);
+    return `${head("P5 补给","补漏与简化","回头补卡住的地方，再写一个模拟——<b>并说出这个模拟在哪里不适用</b>。这一步是费曼法最容易被跳过、也最重要的一步。")}
+    ${low.length?`<div class="result bad">P4 评分中偏低的项目：<b>${low.map(esc).join("、")}</b>。先回 P2 重读相关原理。</div>`:""}
+    <label class="f">我卡住的地方（讲不清楚、被追问答不出、评分低的部分）</label>
+    <textarea oninput="I(${id}).p5.stuck=this.value;save()">${esc(st.p5.stuck)}</textarea>
+    <label class="f">我的模拟</label>
+    <div class="muted">提示：${esc(d.analogyHint)}　（想自己的会比较记得住）</div>
+    <textarea oninput="I(${id}).p5.analogy=this.value;save()" placeholder="……就像……">${esc(st.p5.analogy)}</textarea>
+    <label class="f">这个模拟在哪里“不适用”？</label>
+    <textarea oninput="I(${id}).p5.limit=this.value;save()" placeholder="不过不一样的是……">${esc(st.p5.limit)}</textarea>
+    <label class="f">修正后的一分钟讲解稿（选填，会收进咒语书）</label>
+    <textarea style="min-height:130px" oninput="I(${id}).p5.final=this.value;save()">${esc(st.p5.final)}</textarea>
+    <div class="row" style="margin-top:10px"><button class="btn" onclick="submitP5(${id})">换取补给</button></div>`;
+  }
+  if (r===5) return bossRound(id);
+}
+
+function lockP1(id){ const st=I(id); if(st.p1.choice==null) return toast("先选一个答案"); if(len(st.p1.reason)<8) return toast("理由至少写一句（8 字以上）"); st.p1.locked=true; award(st,"p1",1); save(); render(); }
+function pickChain(id,i){ const st=I(id), d=isl(id); st.p2.order=(st.p2.order||[]).concat(i); if(st.p2.order.length===d.chain.length){ st.p2.chainOK = st.p2.order.every((v,k)=>v===k); if(st.p2.chainOK) award(st,"p2",1); } save(); render(); }
+function submitP3(id){ const st=I(id); if(len(st.p3.result)<8||len(st.p3.gap)<8) return toast("“实际结果”和“落差原因”都要写（各 8 字以上）"); award(st,"p3",2); save(); checkPass(id); render(); toast("实验记录已存，层次 3 检核更新"); }
+function setScore(id,i,n){ I(id).p4.scores[i]=n; save(); if(levels(id).L2) award(I(id),"p4",2); render(); }
+function submitP5(id){ if(!roundDone(id,4)) return toast("三栏都要写：卡住处、模拟、不适用处"); award(I(id),"p5",1); save(); toast("模拟卡已收进咒语书"); render(); }
+
+/* 黄金集计分表（第 10 岛） */
+function goldenTable(id){
+  const st=I(id); st.p3.g = st.p3.g || Array.from({length:10},()=>({q:"",a1:false,a2:false}));
+  const g=st.p3.g, s1=g.filter(x=>x.q&&x.a1).length, s2=g.filter(x=>x.q&&x.a2).length, n=g.filter(x=>x.q).length;
+  return `<h3>黄金集计分表</h3><div class="card" style="overflow-x:auto"><table class="gold"><tr><th>#</th><th>题目＋正确答案</th><th class="c">v1 对</th><th class="c">v2 对</th></tr>
+  ${g.map((x,i)=>`<tr><td>${i+1}</td><td><input type="text" value="${esc(x.q)}" oninput="I(${id}).p3.g[${i}].q=this.value;save()" placeholder="例：箱子压扁了 → 客诉"></td>
+  <td class="c"><input type="checkbox" ${x.a1?"checked":""} onchange="I(${id}).p3.g[${i}].a1=this.checked;save();render()"></td>
+  <td class="c"><input type="checkbox" ${x.a2?"checked":""} onchange="I(${id}).p3.g[${i}].a2=this.checked;save();render()"></td></tr>`).join("")}
+  </table><div class="row" style="margin-top:8px"><b>v1：${s1}/${n}　v2：${s2}/${n}</b>
+  <button class="btn small ghost" onclick="I(${id}).p3.g.push({q:'',a1:false,a2:false});save();render()">加一题</button>
+  <span class="muted">正式的黄金集至少 20 题；这里先练习。</span></div></div>`;
+}
+
+/* P6：抽问＋Boss＋黑天鹅 */
+function bossRound(id){
+  const d=isl(id), st=I(id), L=levels(id);
+  const qs = d.quiz, ans = st.p6.quiz||[], graded = st.p6.graded;
+  const b = d.bosses[st.p6.boss], bt = st.p6.bossTry;
+  return `${head("P6 Boss 战","验收","先通过层次 1 抽问（4 题对 3 题），再挑战 Boss：诊断一个没见过的失效案例。<b>游戏分数不算通过资格，只有内化层次算。</b>")}
+  <h3>层次 1・内核概念抽问</h3>
+  ${qs.map((q,i)=>`<div class="card"><b>${i+1}. ${esc(q.q)}</b><div class="opts">${ord(q.opts.length,id*10+i).map(k=>{ const o=q.opts[k];
+    const cls = graded ? (k===q.a?"right":(ans[i]===k?"wrong":"")) : "";
+    return `<label class="opt ${cls}"><input type="radio" name="q${i}" ${ans[i]===k?"checked":""} ${graded?"disabled":""} onchange="qa(${id},${i},${k})"> <span>${esc(o)}</span></label>`;}).join("")}</div>
+    ${graded?`<div class="why">${esc(q.why)}</div>`:""}</div>`).join("")}
+  <div class="row">${graded? `<span class="pill ${L.L1?"ok":"warn"}">${st.p6.quizScore}/4 ${L.L1?"层次 1 通过":"未过，回 P2 复习后重测"}</span><button class="btn ghost small" onclick="I(${id}).p6.graded=false;I(${id}).p6.quiz=[];save();render()">重测</button>`
+    : `<button class="btn" onclick="grade(${id})">交卷</button>`}</div>
+
+  <h3>层次 4・Boss 战：${esc(d.boss)}${st.p6.boss===1?"（补打：新案例）":""}</h3>
+  ${!L.L1? `<div class="card muted">先通过上面的抽问，Boss 才会现身。</div>` : `
+  <div class="puzzle"><span class="tag">失效案例・诊断它</span><br>${esc(b.text)}</div>
+  <div class="opts">${ord(b.opts.length,id*100+st.p6.boss).map(k=>{ const o=b.opts[k];
+    const cls = bt!=null ? (k===b.a && st.p6.bossOK?"right":(k===bt && k!==b.a?"wrong":"")) : "";
+    return `<label class="opt ${cls}"><input type="radio" name="boss" ${bt===k?"checked":""} ${st.p6.bossOK||bt!=null?"disabled":""} onchange="bossPick(${id},${k})"> <span>${esc(o)}</span></label>`;}).join("")}</div>
+  ${bt!=null ? (st.p6.bossOK
+    ? `<div class="result ok"><b>击败 ${esc(d.boss)}！</b> ${esc(b.why)}</div>`
+    : `<div class="result bad"><b>这次诊断错了。</b>${esc(b.why)}<br>${st.p6.boss===0
+        ? `<button class="btn coral small" style="margin-top:8px" onclick="rematch(${id})">补打 Boss（换一个新案例）</button>`
+        : `两个案例都没过：回 P2 重读原理、P5 补漏后，<button class="btn coral small" onclick="resetBoss(${id})">重新挑战</button>`}</div>`) : ""}
+  `}
+  ${st.p6.bossOK? `<div class="swan" style="margin-top:16px"><div class="tag">黑天鹅事件</div><p style="margin:.4em 0">${esc(d.swan)}</p>
+    <textarea style="background:#2c3d49;color:#efe9d8;border-color:#44596a" oninput="I(${id}).swan=this.value;save()" placeholder="写下你的推论（选填，答了 +1 预测点）">${esc(st.swan)}</textarea>
+    <div class="row" style="margin-top:8px"><button class="btn small" style="background:#f0c96a;color:#22313c" onclick="if(len(I(${id}).swan)>=10){award(I(${id}),'swan',1);save();render()}else toast('多写一点想法')">提交</button></div></div>`:""}
+  <h3>层次 1 至 4 自我检核</h3>
+  <div class="levels">${[["层次 1 复述",L.L1,"回 P6 抽问"],["层次 2 解释",L.L2,"回 P4 讲解与评分"],["层次 3 预测",L.L3,"回 P1 写理由、P3 写落差"],["层次 4 诊断",L.L4,"挑战 Boss"]].map(x=>`<div class="lv ${x[1]?"ok":""}"><b>${x[0]} ${x[1]?"✓":"✗"}</b>${x[1]?"已达成":x[2]}</div>`).join("")}</div>
+  ${passed(id)?`<div class="result ok">四个层次全部达成，这座岛已通关。</div>`:`<div class="muted">未达层次 3 的岛不算通过；分数再高也一样。</div>`}`;
+}
+function qa(id,i,k){ const st=I(id); st.p6.quiz=st.p6.quiz||[]; st.p6.quiz[i]=k; save(); }
+function grade(id){ const st=I(id), d=isl(id), a=st.p6.quiz||[]; if(d.quiz.some((q,i)=>a[i]==null)) return toast("四题都要作答"); st.p6.quizScore=d.quiz.filter((q,i)=>a[i]===q.a).length; st.p6.graded=true; if(st.p6.quizScore>=3) award(st,"quiz",1); save(); checkPass(id); render(); }
+function bossPick(id,k){ const st=I(id), b=isl(id).bosses[st.p6.boss]; st.p6.bossTry=k; st.p6.bossOK = (k===b.a); st.p6.bossTries.push({c:st.p6.boss,k,ok:st.p6.bossOK,t:Date.now()}); if(st.p6.bossOK) award(st,"boss",5); save(); checkPass(id); render(); }
+function rematch(id){ const st=I(id); st.p6.boss=1; st.p6.bossTry=null; save(); render(); }
+function resetBoss(id){ const st=I(id); st.p6.boss=0; st.p6.bossTry=null; save(); render(); }
+
+/* 第 12 岛：毕业项目 */
+function finalRound(id, r){
+  const st=I(id), f=FINAL_ROUNDS[r];
+  let html = `${head("P"+(r+1)+" "+f.title, f.title, esc(f.desc))}` +
+    f.fields.map(x=>`<label class="f">${esc(x[1])}</label><textarea style="min-height:${x[0]==="doc"||x[0]==="decisions"?180:90}px" oninput="I(${id}).f['${x[0]}']=this.value;save()">${esc(st.f[x[0]])}</textarea>`).join("");
+  if (r===1) html += `<div class="card muted">十一座岛的原理：${ISLANDS.filter(d=>!d.final).map(d=>`第 ${d.id} 岛 ${esc(d.badge)}（${esc(d.topic)}）`).join("、")}</div>`;
+  if (r===5){
+    const L=levels(id);
+    html += `<h3>毕业评分表（自评，每项 0 到 3 分）</h3><div class="card">${FINAL_RUBRIC.map(x=>`<div style="margin:8px 0"><b>${esc(x[0])}（${x[1]}%）</b>　<span class="muted">${esc(x[2])}</span><div class="row" style="margin-top:4px">${[0,1,2,3].map(n=>`<button class="btn small ${st.rubric[x[0]]===n?"":"ghost"}" onclick="I(${id}).rubric['${x[0]}']=${n};save();render()">${n}</button>`).join("")}</div></div>`).join("")}
+      <div class="result ${L.L2?"ok":"bad"}">加权总分：<b>${L.score}</b> / 100（需 ≥ 60）</div></div>
+      <h3>最终 Boss：综合诊断</h3>
+      <p class="muted">从前十一座岛随机抽 3 个失效案例，3 题全对才算击败真实世界魔王。</p>
+      ${finalBoss(id)}`;
+  }
+  return html;
+}
+function finalBoss(id){
+  const st=I(id);
+  if (!st.p6.fb){ const pool=[]; ISLANDS.filter(d=>!d.final).forEach(d=>d.bosses.forEach((b,k)=>pool.push([d.id,k]))); st.p6.fb = shuffleIdx(pool.length, Date.now()).slice(0,3).map(i=>pool[i]); st.p6.fa=[]; save(); }
+  const graded=st.p6.fg;
+  return st.p6.fb.map(([iid,k],n)=>{ const b=isl(iid).bosses[k], a=st.p6.fa[n];
+    return `<div class="card"><div class="muted">案例 ${n+1}</div><b>${esc(b.text)}</b><div class="opts">${ord(b.opts.length,iid*100+k).map(j=>{ const o=b.opts[j];
+      const cls = graded? (j===b.a?"right":(a===j?"wrong":"")):"";
+      return `<label class="opt ${cls}"><input type="radio" name="fb${n}" ${a===j?"checked":""} ${graded?"disabled":""} onchange="I(${id}).p6.fa[${n}]=${j};save()"> <span>${esc(o)}</span></label>`;}).join("")}</div>
+      ${graded?`<div class="why">来自第 ${iid} 岛（${esc(isl(iid).boss)}）：${esc(b.why)}</div>`:""}</div>`; }).join("") +
+    `<div class="row">${graded? (st.p6.finalOK?`<span class="pill ok">击败真实世界魔王</span>`:`<span class="pill warn">未全对</span><button class="btn coral small" onclick="I(${id}).p6.fb=null;I(${id}).p6.fg=false;save();render()">换一组新案例再战</button>`)
+      : `<button class="btn" onclick="gradeFinal(${id})">提交诊断</button>`}</div>`;
+}
+function gradeFinal(id){ const st=I(id); if(st.p6.fb.some((x,n)=>st.p6.fa[n]==null)) return toast("三题都要作答"); st.p6.fg=true; st.p6.finalOK = st.p6.fb.every(([iid,k],n)=>isl(iid).bosses[k].a===st.p6.fa[n]); if(st.p6.finalOK) award(st,"final",10); save(); checkPass(id); render(); }
+
+/* 修城（间隔复习） */
+function repair(id){
+  const d=isl(id); if(d.final){ I(id).lastReview=Date.now(); save(); render(); return; }
+  const q=d.quiz[Math.floor(Math.random()*d.quiz.length)];
+  showDlg(`<h2>修城：${esc(d.name)}</h2><p class="muted">不看笔记，回答这一题。</p><p><b>${esc(q.q)}</b></p>
+  <div class="opts">${ord(q.opts.length,Date.now()%997).map(k=>[q.opts[k],k]).map(([o,k])=>`<button class="opt" onclick="repairAns(${id},${k===q.a},${js(q.why)})">${esc(o)}</button>`).join("")}</div>`);
+}
+function repairAns(id, ok, why){
+  if (ok){ I(id).lastReview=Date.now(); save(); showDlg(`<h2>城墙修好了</h2><p>${esc(why)}</p><button class="btn" onclick="closeDlg();render()">好</button>`); }
+  else showDlg(`<h2>还没修好</h2><p>${esc(why)}</p><p class="muted">回这座岛的 P2 重读原理，再来修一次。</p><div class="row"><button class="btn" onclick="closeDlg();go('island',${id});setRound(${id},1)">去复习</button><button class="btn ghost" onclick="closeDlg()">稍后</button></div>`);
+}
+
+/* ---------- 怎么玩 ---------- */
+function guideView(){
+  return `<h2>怎么玩</h2>
+  <p class="lead">这是一门 12 周、每周约 3 小时的课，带零基础的人从“模型为什么这样回答”一路学到提示词、上下文工程、Agent、评测与安全。它用三套方法，各管一件事：</p>
+  <div class="grid2">
+    <div class="card"><b>八角框架</b>管“想不想学”：岛屿、怪物、徽章、黑天鹅、城堡风化。<br><span class="muted">但徽章只绑在“理解”上，不绑在出席或刷分。</span></div>
+    <div class="card"><b>番茄钟</b>管“能不能专注”：每个回合一颗 25 分钟，一次只做一件事。右下角就是计时器。</div>
+    <div class="card"><b>费曼学习法</b>管“有没有真懂”：每座岛都要用 12 岁孩子听得懂的话讲出来，卡住的地方就是缺口。</div>
+    <div class="card"><b>你需要</b>：任何一种 AI 对话工具（照着实验室的提示词去跑）、这个页面、一点诚实。</div>
+  </div>
+  <h3>每座岛 6 回合＝6 颗番茄钟</h3>
+  <div class="card"><ol>
+    <li><b>P1 侦察</b>：看谜题，先写预测和理由。</li>
+    <li><b>P2 解码</b>：读原理，拼出因果链。</li>
+    <li><b>P3 实验室</b>：到你的 AI 工具跑实验，记录“预测、结果、落差原因”。</li>
+    <li><b>P4 传授对决</b>：一分钟讲解，伙伴互评或请 AI 扮演 12 岁孩子追问。之后长休 20 分钟。</li>
+    <li><b>P5 补给</b>：补缺口、写模拟，并写下模拟哪里不适用。</li>
+    <li><b>P6 Boss 战</b>：抽问 4 题对 3 题，再诊断一个没见过的失效案例。</li>
+  </ol></div>
+  <h3>“内化”怎么算</h3>
+  <div class="card"><table class="gold"><tr><th>层次</th><th>你能做到</th><th>在哪里验</th></tr>
+  <tr><td>1 复述</td><td>说出概念与步骤</td><td>P6 抽问</td></tr>
+  <tr><td>2 解释</td><td>用 12 岁孩子听得懂的话说明“为什么”</td><td>P4 费曼讲解</td></tr>
+  <tr><td>3 预测</td><td>改动之前先预测结果并说出理由</td><td>P1 预测＋P3 实验记录</td></tr>
+  <tr><td>4 诊断</td><td>看到失败能找出原因</td><td>P6 Boss 战</td></tr></table>
+  <p class="muted" style="margin-bottom:0">四层都达成才算通关。预测点、番茄钟数只是反馈，不算通过资格。</p></div>
+  <h3>番茄钟规则</h3>
+  <div class="card"><ul>
+    <li>每颗只做一件事，25 分钟内不查消息、不换任务。</li>
+    <li>小休 5 分钟；完成 P4 后长休 20 分钟，休息时不碰课程内容。</li>
+    <li>时间到就停，没做完的记下来留给下一颗。</li>
+    <li>被打断就按“被打断”记一笔原因，在“纪录”页看最常见的分心来源。</li>
+    <li>25 分钟不适合你？内核是“单一任务、不被打断”，可以改成 15 到 50 分钟。</li>
+    <li>隔天用 1 颗番茄钟，不看笔记重讲一次上周的原理；超过 7 天没复习，徽章会变暗，答对一题“修城”就恢复。</li>
+  </ul></div>
+  <h3>给讲师与团体</h3>
+  <div class="card">勾选航海图上的“自由模式”可以解锁全部岛屿备课。团体上课时，3 到 4 人一组成为“公会”，实验员、讲解员、评审员、记录员每周轮换；P4 由公会评审员用同一张评分表评分。每个人的进度只存在自己的浏览器，可在“纪录”页导出备份。完整课程设计见项目里的 <code>课程设计.md</code>。</div>
+  <h3>数据安全</h3>
+  <div class="card">实验一律使用虚构或去识别化的数据，不要把公司机密、客户个资贴进 AI 工具。这个页面不会把你的任何内容传到网络上。</div>
+  <p class="muted">本课程以 <a href="https://creativecommons.org/licenses/by-sa/4.0/deed.zh-hant" target="_blank" rel="noopener">CC BY-SA 4.0</a> 授权：可自由分享、改编与商用，须标示出处，改编作品也须以相同授权发布。</p>`;
+}
+
+/* ---------- 咒语书 ---------- */
+function bookView(){
+  const rows = ISLANDS.filter(d=>S.isl[d.id]).map(d=>{ const st=I(d.id);
+    if (d.final) return `<h3>第 12 岛・王冠岛 ${passed(d.id)?`<span class="pill gold">${esc(d.badge)}</span>`:""}</h3>${FINAL_ROUNDS.map(f=>f.fields.map(x=>`<div class="q">${esc(x[1])}</div><div class="a">${esc(st.f[x[0]])||'<span class="empty">（未写）</span>'}</div>`).join("")).join("")}`;
+    const it=(q,a)=>`<div class="q">${q}</div><div class="a">${a&&a.trim()?esc(a):'<span class="empty">（未写）</span>'}</div>`;
+    return `<h3>第 ${d.id} 岛・${esc(d.name)}　<span class="pill ${passed(d.id)?"gold":""}">${passed(d.id)?esc(d.badge):"未通关"}</span></h3>
+      ${it("我的预测与理由", st.p1.reason)}${it("实验：结果", st.p3.result)}${it("实验：落差原因", st.p3.gap)}
+      ${it("一分钟讲解", st.p5.final||st.p4.text)}${it("模拟", st.p5.analogy)}${it("模拟不适用之处", st.p5.limit)}${it("黑天鹅推论", st.swan)}`;
+  }).join("");
+  return `<div class="row" style="justify-content:space-between"><h2>我的咒语书</h2><div class="row"><button class="btn" onclick="exportMd()">下载 Markdown</button><button class="btn ghost" onclick="window.print()">打印</button></div></div>
+  <p class="lead">你写下的每一段预测、讲解与模拟，都收在这里。这是你的东西，毕业时带走。</p>
+  <div class="card book">${rows || '<p class="empty">还没有内容。从初始之港出发吧。</p>'}</div>`;
+}
+function exportMd(){
+  let md = "# 我的咒语书（脉络群岛）\n\n";
+  ISLANDS.filter(d=>S.isl[d.id]).forEach(d=>{ const st=I(d.id);
+    md += `## 第 ${d.id} 岛・${d.name}${passed(d.id)?`（徽章：${d.badge}）`:""}\n\n`;
+    if (d.final){ FINAL_ROUNDS.forEach(f=>f.fields.forEach(x=>{ md+=`### ${x[1]}\n\n${st.f[x[0]]||"（未写）"}\n\n`; })); return; }
+    [["谜题",d.puzzle.text],["我的预测与理由",st.p1.reason],["实验结果",st.p3.result],["落差原因",st.p3.gap],["一分钟讲解",st.p5.final||st.p4.text],["模拟",st.p5.analogy],["模拟不适用之处",st.p5.limit],["黑天鹅推论",st.swan]]
+      .forEach(([k,v])=>{ md+=`### ${k}\n\n${v||"（未写）"}\n\n`; });
+  });
+  download("咒语书.md", md, "text/markdown");
+}
+function download(name, text, type){ const a=document.createElement("a"); a.href=URL.createObjectURL(new Blob([text],{type:type+";charset=utf-8"})); a.download=name; document.body.appendChild(a); a.click(); setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},500); }
+
+/* ---------- 纪录 ---------- */
+function logView(){
+  const cnt={}; S.interrupts.forEach(x=>{ cnt[x.reason]=(cnt[x.reason]||0)+1; });
+  const top=Object.entries(cnt).sort((a,b)=>b[1]-a[1]);
+  return `<h2>纪录</h2>
+  <div class="grid2">
+    <div class="card"><b>番茄钟</b><p>已完成 <b>${S.pomos}</b> 颗。</p><b>被打断</b>
+      ${top.length? `<ul>${top.map(([r,n])=>`<li>${esc(r)}：${n} 次</li>`).join("")}</ul><p class="muted">最常见的分心来源就是下次要先排除的。</p>` : `<p class="muted">还没有纪录。</p>`}</div>
+    <div class="card"><b>各岛状态</b><ul>${ISLANDS.map(d=>{const L=S.isl[d.id]?levels(d.id):null; return `<li>${esc(d.name)}：${L?["L1","L2","L3","L4"].map(k=>k+(L[k]?"✓":"・")).join(" "):"未出发"}</li>`;}).join("")}</ul></div>
+  </div>
+  <div class="card"><b>备份与搬家</b><p class="muted">进度只存在这台电脑的这个浏览器。换电脑或清除浏览数据前，先导出。</p>
+    <div class="row"><button class="btn" onclick="download('脉络群岛进度.json', JSON.stringify(S,null,1), 'application/json')">导出进度</button>
+    <label class="btn ghost">导入进度<input type="file" accept=".json" hidden onchange="importJson(this.files[0])"></label>
+    <button class="btn ghost" style="margin-left:auto;color:var(--warn);border-color:var(--warn)" onclick="if(confirm('确定清除全部进度？这个动作无法复原。')){S=blank();save();render()}">清除全部进度</button></div></div>`;
+}
+function importJson(file){ if(!file) return; file.text().then(t=>{ try{ const s=JSON.parse(t); if(s.v!==1||!s.isl) throw 0; S=s; save(); render(); toast("已导入"); }catch(e){ toast("文件格式不对"); } }); }
+
+/* ---------- 对话框 ---------- */
+function showDlg(html){ const d=$("#dlg"); d.innerHTML=html; if(!d.open) d.showModal(); }
+function closeDlg(){ $("#dlg").close(); }
+
+/* ---------- 番茄钟 ---------- */
+const P = { left:25*60, running:false, mode:"focus", ctx:null, h:null, end:0 };
+function fmt(s){ return String(Math.floor(s/60)).padStart(2,"0")+":"+String(s%60).padStart(2,"0"); }
+function pomoDraw(){
+  $("#pTime").textContent=fmt(P.left); $("#pMini").textContent=fmt(P.left);
+  $("#pomo").classList.toggle("brk", P.mode!=="focus");
+  $("#pMode").textContent = P.mode==="focus" ? "专注 25 分钟・一次只做一件事" : (P.mode==="long"?"长休 20 分钟・不碰课程内容":"小休 5 分钟・起来走走");
+  $("#pCtx").textContent = P.ctx ? `第 ${P.ctx[0]} 岛・${(isl(P.ctx[0]).final?FINAL_ROUNDS[P.ctx[1]].title:ROUNDS[P.ctx[1]][0]+" "+ROUNDS[P.ctx[1]][1])}` : "未绑定回合";
+  $("#pStart").textContent = P.running ? "暂停" : "开始";
+}
+function pomoTick(){
+  P.left = Math.max(0, Math.round((P.end-Date.now())/1000)); pomoDraw();
+  if (P.left<=0){ clearInterval(P.h); P.running=false; beep();
+    if (P.mode==="focus"){ S.pomos++; save(); const long = P.ctx && P.ctx[1]===3;
+      P.mode = long?"long":"short"; P.left=(long?20:5)*60; toast(long?"P4 完成，长休 20 分钟":"时间到，停手。小休 5 分钟"); }
+    else { P.mode="focus"; P.left=25*60; toast("休息结束，开始下一颗"); }
+    pomoDraw();
+  }
+}
+function pomoStart(){ if(P.running){ clearInterval(P.h); P.running=false; } else { P.end=Date.now()+P.left*1000; P.h=setInterval(pomoTick,500); P.running=true; } pomoDraw(); }
+function pomoFor(id,r){ P.ctx=[id,r]; if(!P.running){ P.mode="focus"; P.left=25*60; pomoStart(); } else pomoDraw(); $("#pomo").classList.remove("mini"); toast("番茄钟已绑定这一回合"); }
+function bindPomoCtx(){ if(!P.running && view.id) { P.ctx=[view.id, I(view.id).round]; pomoDraw(); } }
+function beep(){ try{ const c=new (window.AudioContext||window.webkitAudioContext)(); [0,0.35,0.7].forEach(t=>{ const o=c.createOscillator(), g=c.createGain(); o.frequency.value=660; o.connect(g); g.connect(c.destination); g.gain.setValueAtTime(.15,c.currentTime+t); g.gain.exponentialRampToValueAtTime(.001,c.currentTime+t+.3); o.start(c.currentTime+t); o.stop(c.currentTime+t+.3); }); }catch(e){} }
+$("#pStart").onclick=pomoStart;
+$("#pReset").onclick=()=>{ clearInterval(P.h); P.running=false; P.mode="focus"; P.left=25*60; pomoDraw(); };
+$("#pFold").onclick=()=>{ $("#pomo").classList.toggle("mini"); $("#pFold").textContent=$("#pomo").classList.contains("mini")?"展开":"收合"; };
+$("#pInt").onclick=()=>{
+  showDlg(`<h2>被什么打断了？</h2><p class="muted">记一笔就好，不用自责。课后看最常见的原因。</p>
+  <div class="opts">${["手机通知","消息或电话","同事找","自己想到别的事","累了","其他"].map(r=>`<button class="opt" onclick="logInt('${r}')">${r}</button>`).join("")}</div>`);
+};
+function logInt(r){ S.interrupts.push({reason:r, t:Date.now(), ctx:P.ctx}); save(); closeDlg(); toast("已记录"); }
+
+/* ---------- 启动 ---------- */
+window.addEventListener("hashchange", ()=>{ fromHash(); render(); });
+fromHash(); render(); pomoDraw();
+if (window.innerWidth < 720){ $("#pomo").classList.add("mini"); $("#pFold").textContent="展开"; }
+</script>
+</body>
+</html>

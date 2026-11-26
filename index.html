@@ -24,6 +24,7 @@ header.top .sub{font-size:13px;opacity:.75}
 header.top nav{margin-left:auto;display:flex;gap:6px;flex-wrap:wrap}
 header.top nav button{background:transparent;color:#f3efe2;border:1px solid rgba(243,239,226,.35);border-radius:999px;padding:4px 14px;font-size:14px}
 header.top nav button.on{background:#f3efe2;color:var(--sea)}
+header.top nav a.lang{color:#f0c96a;font-size:14px;padding:4px 10px;text-decoration:none;border-bottom:1px dashed rgba(240,201,106,.6);border-radius:0}
 .stats{display:flex;gap:14px;font-size:13px;opacity:.9}
 @media (max-width:720px){header.top{position:static;padding:10px 14px;gap:8px}header.top nav{margin-left:0}}
 .stats b{font-size:15px;color:#f0c96a}
@@ -150,6 +151,7 @@ dialog::backdrop{background:rgba(18,50,71,.4)}
     <button data-v="guide" onclick="go('guide')">怎麼玩</button>
     <button data-v="book" onclick="go('book')">咒語書</button>
     <button data-v="log" onclick="go('log')">紀錄</button>
+    <a class="lang" href="zh-hans/" onclick="this.href=this.getAttribute('href')+location.hash" lang="zh-Hans">简体中文</a>
   </nav>
 </header>
 

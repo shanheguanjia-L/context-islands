@@ -1,0 +1,653 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>コンテキスト群島｜プロンプトエンジニアリングとコンテキストエンジニアリング：ゼロから身につくまで</title>
+<style>
+:root{
+  --ink:#14212b; --ink2:#4a5a66; --line:#d9d0bb;
+  --paper:#f6f1e4; --card:#fffdf7; --sea:#123247; --sea2:#1e5470; --foam:#e3eef2;
+  --coral:#c8553d; --gold:#b8892a; --ok:#2f7a4f; --warn:#a8442f;
+  --r:10px;
+  --serif:"Songti TC","Noto Serif TC","PMingLiU",serif;
+  --sans:"PingFang TC","Noto Sans TC","Microsoft JhengHei",system-ui,sans-serif;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{font-family:var(--sans);color:var(--ink);background:var(--paper);line-height:1.7;font-size:16px}
+a{color:var(--sea2)}
+button{font:inherit;cursor:pointer}
+header.top{background:var(--sea);color:#f3efe2;padding:14px 20px;display:flex;gap:16px;align-items:center;flex-wrap:wrap;position:sticky;top:0;z-index:20}
+header.top h1{font-family:var(--serif);font-size:20px;margin:0;letter-spacing:.06em;cursor:pointer}
+header.top .sub{font-size:13px;opacity:.75}
+header.top nav{margin-left:auto;display:flex;gap:6px;flex-wrap:wrap}
+header.top nav button{background:transparent;color:#f3efe2;border:1px solid rgba(243,239,226,.35);border-radius:999px;padding:4px 14px;font-size:14px}
+header.top nav button.on{background:#f3efe2;color:var(--sea)}
+header.top nav a.lang{color:#f0c96a;font-size:14px;padding:4px 10px;text-decoration:none;border-bottom:1px dashed rgba(240,201,106,.6);border-radius:0}
+.stats{display:flex;gap:14px;font-size:13px;opacity:.9}
+@media (max-width:720px){header.top{position:static;padding:10px 14px;gap:8px}header.top nav{margin-left:0}}
+.stats b{font-size:15px;color:#f0c96a}
+main{max-width:1040px;margin:0 auto;padding:24px 18px 140px}
+h2{font-family:var(--serif);font-size:26px;margin:.2em 0 .4em;letter-spacing:.03em}
+h3{font-family:var(--serif);font-size:19px;margin:1.2em 0 .4em}
+.lead{color:var(--ink2);max-width:62ch}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:18px 20px;margin:14px 0}
+.muted{color:var(--ink2);font-size:14px}
+.pill{display:inline-block;font-size:12px;padding:1px 10px;border-radius:999px;border:1px solid var(--line);color:var(--ink2);background:#fff}
+.pill.ok{border-color:var(--ok);color:var(--ok)}
+.pill.warn{border-color:var(--warn);color:var(--warn)}
+.pill.gold{border-color:var(--gold);color:var(--gold)}
+.btn{background:var(--sea);color:#fff;border:0;border-radius:8px;padding:8px 16px;font-size:15px}
+.btn:hover{background:var(--sea2)}
+.btn.ghost{background:transparent;color:var(--sea);border:1px solid var(--sea)}
+.btn.small{padding:4px 10px;font-size:13px}
+.btn.coral{background:var(--coral)}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+textarea,input[type=text]{width:100%;font:inherit;font-size:15px;padding:10px 12px;border:1px solid var(--line);border-radius:8px;background:#fff;color:var(--ink)}
+textarea{min-height:90px;resize:vertical}
+label.f{display:block;font-weight:600;margin:12px 0 4px;font-size:15px}
+.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media (max-width:720px){.grid2{grid-template-columns:1fr}}
+
+/* map */
+.legend{display:flex;gap:10px;flex-wrap:wrap;font-size:13px;color:var(--ink2);margin:6px 0 14px}
+.map{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:14px;counter-reset:isl}
+.isl{position:relative;background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:14px 16px 14px;text-align:left;color:var(--ink);min-height:150px;display:flex;flex-direction:column;gap:4px;transition:transform .12s,box-shadow .12s}
+.isl:hover:not(:disabled){transform:translateY(-2px);box-shadow:0 6px 18px rgba(18,50,71,.12)}
+.isl .wk{font-size:12px;color:var(--ink2);letter-spacing:.08em}
+.isl .nm{font-family:var(--serif);font-size:20px;font-weight:700}
+.isl .bs{font-size:14px;color:var(--coral)}
+.isl .tp{font-size:13px;color:var(--ink2)}
+.isl .foot{margin-top:auto;display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.isl:disabled{opacity:.45;cursor:not-allowed}
+.isl.passed{border-color:var(--gold);background:linear-gradient(#fffdf7,#fbf3df)}
+.isl.dim{filter:grayscale(.85);opacity:.75}
+.seal{position:absolute;top:12px;right:12px;width:46px;height:46px;border-radius:50%;border:2px solid var(--gold);color:var(--gold);display:flex;align-items:center;justify-content:center;font-family:var(--serif);font-size:12px;line-height:1.1;text-align:center;padding:4px;transform:rotate(-8deg)}
+.isl.dim .seal{border-color:#999;color:#999}
+
+/* island */
+.crumb{font-size:14px;color:var(--ink2);margin-bottom:6px}
+.crumb a{cursor:pointer}
+.islhead{display:flex;justify-content:space-between;align-items:flex-start;gap:14px;flex-wrap:wrap}
+.tabs{display:flex;gap:6px;flex-wrap:wrap;margin:16px 0 6px;border-bottom:1px solid var(--line);padding-bottom:8px}
+.tab{background:transparent;border:1px solid var(--line);border-radius:8px;padding:6px 12px;font-size:14px;color:var(--ink2)}
+.tab.on{background:var(--sea);color:#fff;border-color:var(--sea)}
+.tab.done::after{content:" ✓";color:var(--ok);font-weight:700}
+.tab.on.done::after{color:#bfe8cf}
+.roundhead{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.roundhead .rn{font-family:var(--serif);font-size:13px;color:var(--coral);letter-spacing:.1em}
+.why{font-size:14px;color:var(--ink2);border-left:3px solid var(--line);padding-left:10px;margin:8px 0}
+.puzzle{font-family:var(--serif);font-size:19px;line-height:1.8;background:var(--sea);color:#f3efe2;border-radius:var(--r);padding:20px 22px}
+.puzzle .tag{display:inline-block;font-family:var(--sans);font-size:12px;letter-spacing:.1em;color:#f0c96a;margin-bottom:6px}
+.opts{display:flex;flex-direction:column;gap:8px;margin:12px 0}
+.opt{display:flex;gap:10px;align-items:flex-start;border:1px solid var(--line);border-radius:8px;padding:10px 12px;background:#fff;cursor:pointer;text-align:left}
+.opt input{margin-top:6px}
+.opt.right{border-color:var(--ok);background:#eef7f1}
+.opt.wrong{border-color:var(--warn);background:#fbeeea}
+.principle li{margin:6px 0}
+.chainpool,.chainout{display:flex;flex-direction:column;gap:6px;min-height:40px}
+.chip{border:1px dashed var(--sea2);background:#fff;border-radius:8px;padding:8px 12px;text-align:left;color:var(--ink)}
+.chainout .chip{border-style:solid;background:var(--foam)}
+.chainout .chip::before{content:attr(data-n) "　";color:var(--coral);font-weight:700}
+.prompt{position:relative;background:#1b2a35;color:#e9e4d4;border-radius:8px;padding:12px 14px 12px;font-family:"SF Mono",Menlo,Consolas,monospace;font-size:13.5px;white-space:pre-wrap;margin:8px 0}
+.prompt .cp{position:absolute;top:8px;right:8px}
+.score{display:grid;grid-template-columns:110px repeat(4,1fr);gap:4px;font-size:13px;align-items:stretch}
+.score .h{font-weight:700;padding:6px;background:var(--foam);border-radius:6px}
+.score .lab{font-weight:700;padding:6px;display:flex;align-items:center}
+.score button{border:1px solid var(--line);background:#fff;border-radius:6px;padding:6px;text-align:left;font-size:12.5px;color:var(--ink2)}
+.score button.on{border-color:var(--sea);background:var(--sea);color:#fff}
+@media (max-width:720px){.score{grid-template-columns:70px repeat(4,1fr);font-size:12px}.score button{font-size:11px;padding:4px}}
+.levels{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:10px 0}
+.lv{border:1px solid var(--line);border-radius:8px;padding:10px;background:#fff;font-size:13px}
+.lv b{display:block;font-size:14px}
+.lv.ok{border-color:var(--ok);background:#eef7f1}
+@media (max-width:720px){.levels{grid-template-columns:1fr 1fr}}
+.result{border-radius:8px;padding:12px 14px;margin:10px 0}
+.result.ok{background:#eef7f1;border:1px solid var(--ok)}
+.result.bad{background:#fbeeea;border:1px solid var(--warn)}
+.swan{background:#22313c;color:#efe9d8;border-radius:var(--r);padding:18px 20px}
+.swan .tag{color:#f0c96a;font-size:12px;letter-spacing:.1em}
+table.gold{width:100%;border-collapse:collapse;font-size:14px}
+table.gold th,table.gold td{border-bottom:1px solid var(--line);padding:6px;text-align:left;vertical-align:middle}
+table.gold input[type=text]{padding:5px 8px;font-size:14px}
+table.gold td.c{text-align:center;width:52px}
+
+/* pomodoro */
+.pomo{position:fixed;right:16px;bottom:16px;z-index:30;background:var(--card);border:1px solid var(--line);border-radius:14px;box-shadow:0 10px 28px rgba(18,50,71,.18);padding:12px 14px;width:250px}
+.pomo .t{font-family:var(--serif);font-size:34px;font-weight:700;text-align:center;letter-spacing:.04em;font-variant-numeric:tabular-nums}
+.pomo .m{font-size:12px;text-align:center;color:var(--ink2)}
+.pomo .row{justify-content:center;margin-top:6px}
+.pomo.brk{background:#eef7f1;border-color:var(--ok)}
+.pomo.mini{width:auto;padding:8px 12px}
+.pomo.mini .full{display:none}
+.pomo .minit{display:none;font-weight:700;font-variant-numeric:tabular-nums}
+.pomo.mini .minit{display:inline}
+.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--sea);color:#fff;padding:10px 18px;border-radius:999px;font-size:14px;z-index:40;opacity:0;transition:opacity .2s;pointer-events:none}
+.toast.on{opacity:1}
+dialog{border:1px solid var(--line);border-radius:12px;max-width:520px;width:92%;padding:20px;background:var(--card);color:var(--ink)}
+dialog::backdrop{background:rgba(18,50,71,.4)}
+.book h3{border-bottom:1px solid var(--line);padding-bottom:4px}
+.book .q{font-weight:700;font-size:14px;margin-top:8px}
+.book .a{white-space:pre-wrap;font-size:15px}
+.empty{color:#9a9384;font-style:italic}
+@media print{header.top,.pomo,.toast,.row .btn{display:none!important}body{background:#fff}main{padding:0}.card{border:0}}
+</style>
+</head>
+<body>
+<header class="top">
+  <div>
+    <h1 onclick="go('map')">コンテキスト群島</h1>
+    <div class="sub">プロンプト＆コンテキストエンジニアリング：ゼロから身につくまで</div>
+  </div>
+  <div class="stats" aria-live="polite">
+    <span>バッジ <b id="sBadge">0</b>/12</span>
+    <span>予測ポイント <b id="sPts">0</b></span>
+    <span>ポモドーロ <b id="sPomo">0</b></span>
+  </div>
+  <nav>
+    <button data-v="map" onclick="go('map')">海図</button>
+    <button data-v="guide" onclick="go('guide')">遊び方</button>
+    <button data-v="book" onclick="go('book')">呪文の書</button>
+    <button data-v="log" onclick="go('log')">記録</button>
+    <!--LANG--><a class="lang" href="../" onclick="this.href=this.getAttribute('href')+location.hash" lang="zh-Hant">繁體中文</a><a class="lang" href="../zh-hans/" onclick="this.href=this.getAttribute('href')+location.hash" lang="zh-Hans">简体中文</a><a class="lang" href="../en/" onclick="this.href=this.getAttribute('href')+location.hash" lang="en">English</a><!--/LANG-->
+  </nav>
+</header>
+
+<main id="app"></main>
+
+<div class="pomo" id="pomo">
+  <div class="full">
+    <div class="m" id="pMode">集中 25 分・一度にひとつだけ</div>
+    <div class="t" id="pTime">25:00</div>
+    <div class="m" id="pCtx">ラウンド未設定</div>
+    <div class="row">
+      <button class="btn small" id="pStart">開始</button>
+      <button class="btn small ghost" id="pReset">リセット</button>
+      <button class="btn small ghost" id="pInt" title="中断された理由を記録">中断された</button>
+    </div>
+  </div>
+  <div class="row" style="margin:0">
+    <span class="minit" id="pMini">25:00</span>
+    <button class="btn small ghost" id="pFold" style="margin-left:auto">たたむ</button>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+<dialog id="dlg"></dialog>
+
+<script src="data.js"></script>
+<script>
+"use strict";
+const KEY = "context-islands-v1";
+const DAY = 86400000;
+const ROUNDS = [
+  ["P1","偵察","謎解きと予測"],
+  ["P2","解読","原理の分解"],
+  ["P3","実験室","予測・実験・照合"],
+  ["P4","教え合い対決","ファインマン説明"],
+  ["P5","補給","穴埋めとたとえ"],
+  ["P6","ボス戦","確認"]
+];
+const RUBRIC = [
+  ["正確さ", ["重大な誤りがある","おおむね正しいがあいまい","正しい","正しく、限界も指摘できる"]],
+  ["わかりやすさ", ["説明のない専門用語が多い","専門用語が多い","専門用語はすべて説明済み","12歳の子でもわかる"]],
+  ["たとえ",   ["なし","たとえがずれている","たとえが的確","的確で、当てはまらない点も説明できる"]],
+  ["因果",   ["「何か」しか言えない","「なぜなら」はあるが飛躍がある","因果の流れが完全","完全で、変化も予測できる"]],
+  ["追加質問",   ["答えられない","半分だけ答えられる","答えられる","答えられ、新しい状況にも広げられる"]]
+];
+
+/* ---------- state ---------- */
+let S = load();
+function blank(){ return { v:1, free:false, pts:0, pomos:0, interrupts:[], isl:{} }; }
+function load(){
+  try { const s = JSON.parse(localStorage.getItem(KEY)); if (s && s.v===1) return s; } catch(e){}
+  return blank();
+}
+function save(){ localStorage.setItem(KEY, JSON.stringify(S)); stats(); }
+function I(id){ if(!S.isl[id]) S.isl[id] = {round:0, p1:{}, p2:{}, p3:{}, p4:{scores:[-1,-1,-1,-1,-1]}, p5:{}, p6:{boss:0, bossTries:[]}, f:{}, rubric:{}, swan:"", awarded:{}}; return S.isl[id]; }
+function award(st, key, n){ if(!st.awarded[key]){ st.awarded[key]=1; S.pts += n; toast("+"+n+" 予測ポイント"); } }
+
+/* ---------- helpers ---------- */
+const $ = s => document.querySelector(s);
+const esc = s => String(s==null?"":s).replace(/[&<>"]/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const len = s => (s||"").trim().length;
+const js = v => esc(JSON.stringify(v)).replace(/'/g,"&#39;");
+function toast(m){ const t=$("#toast"); t.textContent=m; t.classList.add("on"); clearTimeout(toast.h); toast.h=setTimeout(()=>t.classList.remove("on"),1800); }
+function copy(text){
+  const done = ()=>toast("コピーしました。お使いの AI ツールに貼り付けて試してください");
+  if (navigator.clipboard && window.isSecureContext) navigator.clipboard.writeText(text).then(done, ()=>fallback());
+  else fallback();
+  function fallback(){ const ta=document.createElement("textarea"); ta.value=text; document.body.appendChild(ta); ta.select(); try{document.execCommand("copy"); done();}catch(e){toast("コピーに失敗しました。手動で選択してください");} ta.remove(); }
+}
+function shuffleIdx(n, seed){ const a=[...Array(n).keys()]; let x=seed||Date.now(); for(let i=n-1;i>0;i--){ x=(x*9301+49297)%233280; const j=Math.floor(x/233280*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
+function isl(id){ return ISLANDS.find(x=>x.id===id); }
+const ord = (n, seed) => shuffleIdx(n, seed*131+17);
+
+/* ---------- pass rules (four levels of internalization) ---------- */
+function levels(id){
+  const d = isl(id), st = I(id);
+  if (d.final){
+    const filled = FINAL_ROUNDS.every(r=>r.fields.every(f=>len(st.f[f[0]])>=10));
+    const rub = FINAL_RUBRIC.every(r=>st.rubric[r[0]]!=null);
+    const score = FINAL_RUBRIC.reduce((a,r)=>a+(st.rubric[r[0]]||0)*r[1]/3,0);
+    const bossOK = !!st.p6.finalOK;
+    return {L1:filled, L2:rub && score>=60, L3:filled && bossOK, L4:bossOK, score:Math.round(score)};
+  }
+  const q = st.p6.quizScore||0;
+  const sc = st.p4.scores, avg = sc.every(x=>x>=0) ? sc.reduce((a,b)=>a+b,0)/5 : -1;
+  return {
+    L1: q>=3,
+    L2: avg>=2 && len(st.p4.text)>=60,
+    L3: len(st.p1.reason)>=8 && len(st.p3.result)>=8 && len(st.p3.gap)>=8,
+    L4: !!st.p6.bossOK,
+    avg
+  };
+}
+function passed(id){ if(!S.isl[id]) return false; const L=levels(id); return L.L1&&L.L2&&L.L3&&L.L4; }
+function roundDone(id, r){
+  const d=isl(id), st=I(id);
+  if (d.final) return FINAL_ROUNDS[r].fields.every(f=>len(st.f[f[0]])>=10) && (r<5 || !!st.p6.finalOK);
+  switch(r){
+    case 0: return st.p1.choice!=null && len(st.p1.reason)>=8;
+    case 1: return !!st.p2.chainOK;
+    case 2: return len(st.p3.result)>=8 && len(st.p3.gap)>=8;
+    case 3: return levels(id).L2;
+    case 4: return len(st.p5.stuck)>=4 && len(st.p5.analogy)>=8 && len(st.p5.limit)>=4;
+    case 5: return levels(id).L1 && levels(id).L4;
+  }
+}
+function unlocked(id){ return S.free || id===1 || passed(id-1); }
+function isDim(id){ const st=S.isl[id]; return st && st.passedAt && (Date.now()-(st.lastReview||st.passedAt) > 7*DAY); }
+function checkPass(id){
+  const st=I(id);
+  if (passed(id) && !st.passedAt){
+    st.passedAt = st.lastReview = Date.now(); save();
+    const d=isl(id);
+    showDlg(`<h2>クリア：${esc(d.name)}</h2><p>バッジ「<b>${esc(d.badge)}</b>」を獲得しました。</p>
+      <p class="muted">ご注意：7 日以上復習しないと、海図上のバッジが暗くなります（知識の城の風化）。戻ってきて「城の修理」問題に 1 問正解すれば元に戻ります。</p>
+      ${d.final?"":`<p>次の目的地：${esc((isl(id+1)||{}).name||"")}</p>`}
+      <div class="row"><button class="btn" onclick="closeDlg();go('map')">海図に戻る</button><button class="btn ghost" onclick="closeDlg()">このまま残る</button></div>`);
+  }
+}
+
+/* ---------- routing ---------- */
+let view = {name:"map"};
+function go(name, id){ view = {name, id}; if(id) I(id); render(); window.scrollTo(0,0); location.hash = id? name+"/"+id : name; }
+function fromHash(){ const [n,i]=location.hash.slice(1).split("/"); if(n==="island" && +i && (unlocked(+i))) view={name:n,id:+i}; else if(["map","guide","book","log"].includes(n)) view={name:n}; }
+function render(){
+  document.querySelectorAll("header nav button").forEach(b=>b.classList.toggle("on", b.dataset.v===view.name));
+  const app=$("#app");
+  if (view.name==="island") app.innerHTML = islandView(view.id);
+  else if (view.name==="guide") app.innerHTML = guideView();
+  else if (view.name==="book") app.innerHTML = bookView();
+  else if (view.name==="log") app.innerHTML = logView();
+  else app.innerHTML = mapView();
+  stats();
+  if (view.name==="island"){ bindPomoCtx(); checkPass(view.id); }
+}
+function stats(){
+  $("#sBadge").textContent = ISLANDS.filter(d=>passed(d.id)).length;
+  $("#sPts").textContent = S.pts; $("#sPomo").textContent = S.pomos;
+}
+
+/* ---------- sea chart ---------- */
+function mapView(){
+  const n = ISLANDS.filter(d=>passed(d.id)).length;
+  const dims = ISLANDS.filter(d=>isDim(d.id));
+  return `
+  <h2>モデルの海・海図</h2>
+  <p class="lead">あなたは「AI テイマー見習い」です。王国の人々は AI を使いたいのに、信用できずにいます。どの島にも「失敗モンスター」——AI が実際に失敗するパターン——が住んでいます。<b>倒す方法はただひとつ：なぜそれが起きるのかを説明できることです。</b></p>
+  ${n===0 && !S.isl[1] ? `<div class="card"><b>はじめての方へ</b> まず 2 分ほど「<a href="#guide" onclick="go('guide');return false">遊び方</a>」を読んでから、はじまりの港を出発しましょう。1 島あたりポモドーロ約 6 個（休憩込みで約 3 時間）。数日に分けても大丈夫です。</div>`:""}
+  ${dims.length? `<div class="card" style="border-color:var(--warn)"><b>知識の城が風化しています：</b>${dims.map(d=>esc(d.name)).join("、")} が 7 日以上復習されていません。<button class="btn small coral" onclick="repair(${dims[0].id})">城を修理：1 問答える</button></div>`:""}
+  <div class="legend"><span class="pill">未解放</span><span class="pill warn">進行中</span><span class="pill gold">クリア済み</span><span class="pill">灰色＝復習が必要</span>
+    <label style="margin-left:auto"><input type="checkbox" ${S.free?"checked":""} onchange="S.free=this.checked;save();render()"> フリーモード（全島を解放。講師の準備用）</label></div>
+  <div class="map">
+  ${ISLANDS.map(d=>{
+    const st=S.isl[d.id], ok=passed(d.id), un=unlocked(d.id), dim=isDim(d.id);
+    const doneN = st ? ROUNDS.filter((r,i)=>roundDone(d.id,i)).length : 0;
+    return `<button class="isl ${ok?"passed":""} ${dim?"dim":""}" ${un?"":"disabled"} onclick="go('island',${d.id})" aria-label="第 ${d.id} 週 ${esc(d.name)}">
+      ${ok?`<div class="seal">${esc(d.badge)}</div>`:""}
+      <span class="wk">第 ${d.id} 週・${esc(d.stage)}</span>
+      <span class="nm">${esc(d.name)}</span>
+      <span class="bs">ボス：${esc(d.boss)}</span>
+      <span class="tp">${esc(d.topic)}</span>
+      <span class="foot">${ok?`<span class="pill gold">クリア済み</span>`: un? (st?`<span class="pill warn">${doneN}/6 ラウンド</span>`:`<span class="pill">出発できます</span>`) : `<span class="pill">未解放</span>`}
+      ${dim?`<span class="pill warn">修理が必要</span>`:""}</span>
+    </button>`;}).join("")}
+  </div>`;
+}
+
+/* ---------- island ---------- */
+function islandView(id){
+  const d=isl(id), st=I(id);
+  if (!unlocked(id)) return `<p>この島はまだ解放されていません。</p>`;
+  const r = st.round;
+  const tabs = (d.final? FINAL_ROUNDS.map((f,i)=>["P"+(i+1), f.title]) : ROUNDS).map((x,i)=>
+    `<button class="tab ${i===r?"on":""} ${roundDone(id,i)?"done":""}" onclick="setRound(${id},${i})">${x[0]} ${esc(x[1])}</button>`).join("");
+  const L=levels(id);
+  return `
+  <div class="crumb"><a onclick="go('map')">← 海図</a></div>
+  <div class="islhead">
+    <div><h2>第 ${d.id} 島・${esc(d.name)}</h2>
+      <div class="muted">${esc(d.topic)}　｜　ボス：<b style="color:var(--coral)">${esc(d.boss)}</b>　｜　バッジ：${esc(d.badge)}</div>
+      <div class="muted">身につけること：${esc(d.core)}</div></div>
+    ${passed(id)?`<span class="pill gold">クリア済み</span>`:""}
+  </div>
+  <div class="levels">
+    ${(d.final?[["成果物","6 ラウンドすべて記入",L.L1],["説明","卒業評価 60 点以上",L.L2],["根拠","成果物＋総合診断",L.L3],["最終ボス","総合診断 3 問すべて正解",L.L4]]:[["レベル 1 再現","確認テスト 4 問中 3 問正解",L.L1],["レベル 2 説明","ファインマン説明の平均 2 点以上",L.L2],["レベル 3 予測","予測に理由、ずれに原因がある",L.L3],["レベル 4 診断","ボス戦で診断に成功",L.L4]])
+      .map(x=>`<div class="lv ${x[2]?"ok":""}"><b>${x[0]} ${x[2]?"✓":""}</b>${x[1]}</div>`).join("")}
+  </div>
+  <div class="tabs" role="tablist">${tabs}</div>
+  <section>${d.final? finalRound(id,r) : roundView(id,r)}</section>
+  <div class="row" style="justify-content:space-between;margin-top:18px">
+    <button class="btn ghost" ${r===0?"disabled":""} onclick="setRound(${id},${r-1})">← 前のラウンド</button>
+    <button class="btn ghost" onclick="pomoFor(${id},${r})">このラウンドにポモドーロで集中する</button>
+    <button class="btn" ${r===5?"disabled":""} onclick="setRound(${id},${r+1})">次のラウンド →</button>
+  </div>`;
+}
+function setRound(id,r){ I(id).round=r; save(); render(); window.scrollTo(0,0); }
+function head(n, title, why){ return `<div class="roundhead"><span class="rn">${n}</span><h3 style="margin:.2em 0">${title}</h3></div>${why?`<div class="why">${why}</div>`:""}`; }
+
+function roundView(id, r){
+  const d=isl(id), st=I(id);
+  if (r===0){
+    const p=d.puzzle;
+    return `${head("P1 偵察","謎解きと予測","まず予想してから学びます。<b>予測が外れた瞬間こそ、いちばん価値のある学びの瞬間です</b>——ただし先に理由を書いておくことが前提です。このラウンドでは答えは表示されません。")}
+    <div class="puzzle"><span class="tag">モンスター出現カード・${esc(d.boss)}</span><br>${esc(p.text)}</div>
+    <div class="opts">${ord(p.options.length,id).map(i=>`<label class="opt"><input type="radio" name="p1" ${st.p1.choice===i?"checked":""} onchange="I(${id}).p1.choice=${i};save()"> <span>${esc(p.options[i])}</span></label>`).join("")}</div>
+    <label class="f" for="p1r">わたしの予測は……なぜなら……（理由を少なくとも一文で）</label>
+    <textarea id="p1r" oninput="I(${id}).p1.reason=this.value;save()" placeholder="例：B だと思う。なぜなら……">${esc(st.p1.reason)}</textarea>
+    <div class="row" style="margin-top:10px"><button class="btn" onclick="lockP1(${id})">予測ポイントを賭ける</button>
+    ${st.p1.locked?`<span class="pill ok">賭けました。答えは P2 解読で確認</span>`:""}</div>`;
+  }
+  if (r===1){
+    const p=d.puzzle, ord = st.p2.order||[], pool = shuffleIdx(d.chain.length, id*7+3).filter(i=>!ord.includes(i));
+    return `${head("P2 解読","原理の分解","原理を読んだら、因果の流れを順番に並べて、自分だけの「原理マップ」を完成させましょう。")}
+    ${st.p1.locked||st.p1.choice!=null ? `<div class="result ${st.p1.choice===p.answer?"ok":"bad"}">謎の答え：<b>${esc(p.options[p.answer])}</b><br>P1 で選んだのは：${esc(p.options[st.p1.choice]??"（未回答）")}${st.p1.choice===p.answer?"　→ 予測的中。":"　→ 予測は外れました。それで OK：下の原理を読み、P3 でどこでつまずいたかを書きましょう。"}</div>`:""}
+    <div class="card"><ul class="principle">${d.principle.map(x=>`<li>${x}</li>`).join("")}</ul></div>
+    <h3>原理マップを組み立てる</h3>
+    <p class="muted">因果の順番に、下のカードをクリックします。間違えたら「並べ直す」を押してください。</p>
+    <div class="grid2"><div><div class="muted">未配置</div><div class="chainpool">${pool.map(i=>`<button class="chip" onclick="pickChain(${id},${i})">${esc(d.chain[i])}</button>`).join("")||`<span class="empty">すべて配置しました</span>`}</div></div>
+    <div><div class="muted">あなたの順番</div><div class="chainout">${ord.map((i,k)=>`<div class="chip" data-n="${k+1}">${esc(d.chain[i])}</div>`).join("")||`<span class="empty">左からクリック</span>`}</div></div></div>
+    <div class="row" style="margin-top:10px"><button class="btn ghost small" onclick="I(${id}).p2.order=[];I(${id}).p2.chainOK=false;save();render()">並べ直す</button>
+    ${st.p2.chainOK?`<span class="pill ok">因果の流れは正解</span>`: (ord.length===d.chain.length?`<span class="pill warn">順番が違います。「何が先にあって、何を引き起こすか」を考えてみましょう</span>`:"")}</div>`;
+  }
+  if (r===2){
+    const lab=d.lab;
+    return `${head("P3 実験室","予測・実験・照合","ふだん使っている AI チャットツールを開いて、手順どおりに進めます。<b>どのステップも、先に予測してから実行します。</b>予測が当たっても、ずれの原因を書けても得点になります。")}
+    <div class="card"><b>実験の目的：</b>${esc(lab.goal)}<ol>${lab.steps.map(s=>`<li>${esc(s)}</li>`).join("")}</ol></div>
+    ${lab.prompts.map((p,i)=>`<div class="muted">プロンプト ${i+1}</div><div class="prompt"><button class="btn small ghost cp" style="background:#f3efe2" onclick="copy(${js(p)})">コピー</button>${esc(p)}</div>`).join("")}
+    ${lab.golden? goldenTable(id):""}
+    <h3>実験記録シート</h3>
+    <label class="f">わたしの予測（実行前に書く）</label>
+    <textarea oninput="I(${id}).p3.pred=this.value;save()" placeholder="わたしの予測は……なぜなら……">${esc(st.p3.pred)}</textarea>
+    <label class="f">実際の結果</label>
+    <textarea oninput="I(${id}).p3.result=this.value;save()" placeholder="実際には……">${esc(st.p3.result)}</textarea>
+    <label class="f">ずれの原因（予測と結果のどこが違った？なぜ？完全に一致したなら、どの原理のおかげで当たったか）</label>
+    <textarea oninput="I(${id}).p3.gap=this.value;save()" placeholder="……だと思っていたが、実は……だった">${esc(st.p3.gap)}</textarea>
+    <div class="row" style="margin-top:10px"><button class="btn" onclick="submitP3(${id})">実験記録を提出</button></div>`;
+  }
+  if (r===3){
+    const sc=st.p4.scores, L=levels(id);
+    const ask = `あなたは AI のことをまったく知らない 12 歳の生徒です。これからわたしが「${d.feynman}」について説明します。\n12 歳の子どもの目線だけで、わたしに 2 つ質問してください。説明があいまいなところ、専門用語を説明せずに使ったところ、因果が飛躍しているところを狙ってください。評価はまだせず、質問だけしてください。\n\nわたしの説明：\n${st.p4.text||"（ここに説明を貼り付け）"}`;
+    return `${head("P4 教え合い対決","ファインマン説明","<b>人に教えられないなら、まだわかっていません。</b>12 歳の子でもわかる言葉で 1 分間説明しましょう。仲間がいれば交代で説明し、評価し合います。ひとりなら書き出してから、AI に 12 歳の子役になって質問してもらいます。終わったら 20 分の長い休憩をおすすめします。")}
+    <div class="puzzle"><span class="tag">ファインマン問題・技術に詳しくない同僚に説明する</span><br>${esc(d.feynman)}</div>
+    <label class="f">わたしの 1 分間説明（200〜350 字程度。説明のない専門用語は禁止）</label>
+    <textarea style="min-height:150px" oninput="I(${id}).p4.text=this.value;save();document.getElementById('cnt').textContent=this.value.trim().length">${esc(st.p4.text)}</textarea>
+    <div class="muted">文字数：<span id="cnt">${len(st.p4.text)}</span></div>
+    <div class="row" style="margin:10px 0"><button class="btn ghost" onclick="copy(${js(ask)})">「12 歳の子が質問」プロンプトをコピー</button><span class="muted">質問をここに貼り付けて、答えてみましょう。答えられなかった点は P5 に書きます。</span></div>
+    <label class="f">追加質問とわたしの答え</label>
+    <textarea oninput="I(${id}).p4.followup=this.value;save()" placeholder="質問：……　わたしの答え：……">${esc(st.p4.followup)}</textarea>
+    <h3>評価表（仲間が評価、または正直に自己評価）</h3>
+    <div class="score">
+      <div class="h">項目</div>${[0,1,2,3].map(n=>`<div class="h">${n} 点</div>`).join("")}
+      ${RUBRIC.map((row,i)=>`<div class="lab">${row[0]}</div>${row[1].map((t,n)=>`<button class="${sc[i]===n?"on":""}" onclick="setScore(${id},${i},${n})">${t}</button>`).join("")}`).join("")}
+    </div>
+    <div class="result ${L.L2?"ok":"bad"}" style="margin-top:12px">平均：<b>${L.avg>=0?L.avg.toFixed(1):"未評価の項目あり"}</b>（2 点以上、かつ説明 60 字以上が必要）。${L.L2?"レベル 2 合格。":"0 点・1 点の項目が、P5 で埋めるべき穴です。"}</div>`;
+  }
+  if (r===4){
+    const low = RUBRIC.map((x,i)=>[x[0],st.p4.scores[i]]).filter(x=>x[1]>=0&&x[1]<2).map(x=>x[0]);
+    return `${head("P5 補給","穴埋めと単純化","つまずいたところに戻って穴を埋め、たとえ話を書きます——<b>そして、そのたとえが当てはまらない点も書きます</b>。ファインマン・テクニックでいちばん飛ばされやすく、いちばん大切なステップです。")}
+    ${low.length?`<div class="result bad">P4 の評価で低かった項目：<b>${low.map(esc).join("、")}</b>。まず P2 に戻って関連する原理を読み直しましょう。</div>`:""}
+    <label class="f">つまずいたところ（うまく説明できなかった、質問に答えられなかった、評価が低かった部分）</label>
+    <textarea oninput="I(${id}).p5.stuck=this.value;save()">${esc(st.p5.stuck)}</textarea>
+    <label class="f">わたしのたとえ</label>
+    <div class="muted">ヒント：${esc(d.analogyHint)}　（自分で考えたたとえのほうが記憶に残ります）</div>
+    <textarea oninput="I(${id}).p5.analogy=this.value;save()" placeholder="……は……のようなもの">${esc(st.p5.analogy)}</textarea>
+    <label class="f">このたとえが「当てはまらない」のはどこ？</label>
+    <textarea oninput="I(${id}).p5.limit=this.value;save()" placeholder="ただし違うのは……">${esc(st.p5.limit)}</textarea>
+    <label class="f">修正後の 1 分間説明（任意。呪文の書に収録されます）</label>
+    <textarea style="min-height:130px" oninput="I(${id}).p5.final=this.value;save()">${esc(st.p5.final)}</textarea>
+    <div class="row" style="margin-top:10px"><button class="btn" onclick="submitP5(${id})">補給を受け取る</button></div>`;
+  }
+  if (r===5) return bossRound(id);
+}
+
+function lockP1(id){ const st=I(id); if(st.p1.choice==null) return toast("まず答えを 1 つ選んでください"); if(len(st.p1.reason)<8) return toast("理由を少なくとも一文書いてください（8 文字以上）"); st.p1.locked=true; award(st,"p1",1); save(); render(); }
+function pickChain(id,i){ const st=I(id), d=isl(id); st.p2.order=(st.p2.order||[]).concat(i); if(st.p2.order.length===d.chain.length){ st.p2.chainOK = st.p2.order.every((v,k)=>v===k); if(st.p2.chainOK) award(st,"p2",1); } save(); render(); }
+function submitP3(id){ const st=I(id); if(len(st.p3.result)<8||len(st.p3.gap)<8) return toast("「実際の結果」と「ずれの原因」の両方を書いてください（各 8 文字以上）"); award(st,"p3",2); save(); checkPass(id); render(); toast("実験記録を保存しました。レベル 3 の判定を更新しました"); }
+function setScore(id,i,n){ I(id).p4.scores[i]=n; save(); if(levels(id).L2) award(I(id),"p4",2); render(); }
+function submitP5(id){ if(!roundDone(id,4)) return toast("3 つとも書いてください：つまずいた点、たとえ、当てはまらない点"); award(I(id),"p5",1); save(); toast("たとえカードを呪文の書に追加しました"); render(); }
+
+/* golden set scorecard (Island 10) */
+function goldenTable(id){
+  const st=I(id); st.p3.g = st.p3.g || Array.from({length:10},()=>({q:"",a1:false,a2:false}));
+  const g=st.p3.g, s1=g.filter(x=>x.q&&x.a1).length, s2=g.filter(x=>x.q&&x.a2).length, n=g.filter(x=>x.q).length;
+  return `<h3>ゴールデンセット採点表</h3><div class="card" style="overflow-x:auto"><table class="gold"><tr><th>#</th><th>問題＋正解</th><th class="c">v1 正解</th><th class="c">v2 正解</th></tr>
+  ${g.map((x,i)=>`<tr><td>${i+1}</td><td><input type="text" value="${esc(x.q)}" oninput="I(${id}).p3.g[${i}].q=this.value;save()" placeholder="例：箱がつぶれて届いた → クレーム"></td>
+  <td class="c"><input type="checkbox" ${x.a1?"checked":""} onchange="I(${id}).p3.g[${i}].a1=this.checked;save();render()"></td>
+  <td class="c"><input type="checkbox" ${x.a2?"checked":""} onchange="I(${id}).p3.g[${i}].a2=this.checked;save();render()"></td></tr>`).join("")}
+  </table><div class="row" style="margin-top:8px"><b>v1：${s1}/${n}　v2：${s2}/${n}</b>
+  <button class="btn small ghost" onclick="I(${id}).p3.g.push({q:'',a1:false,a2:false});save();render()">1 問追加</button>
+  <span class="muted">本番のゴールデンセットは最低 20 問。ここでは練習です。</span></div></div>`;
+}
+
+/* P6: quiz + boss + black swan */
+function bossRound(id){
+  const d=isl(id), st=I(id), L=levels(id);
+  const qs = d.quiz, ans = st.p6.quiz||[], graded = st.p6.graded;
+  const b = d.bosses[st.p6.boss], bt = st.p6.bossTry;
+  return `${head("P6 ボス戦","確認","まずレベル 1 の確認テスト（4 問中 3 問正解）に合格し、それからボスに挑みます：見たことのない失敗事例を診断してください。<b>ゲームのポイントは合格条件に含まれません。数えるのは身についたレベルだけです。</b>")}
+  <h3>レベル 1・核心概念の確認テスト</h3>
+  ${qs.map((q,i)=>`<div class="card"><b>${i+1}. ${esc(q.q)}</b><div class="opts">${ord(q.opts.length,id*10+i).map(k=>{ const o=q.opts[k];
+    const cls = graded ? (k===q.a?"right":(ans[i]===k?"wrong":"")) : "";
+    return `<label class="opt ${cls}"><input type="radio" name="q${i}" ${ans[i]===k?"checked":""} ${graded?"disabled":""} onchange="qa(${id},${i},${k})"> <span>${esc(o)}</span></label>`;}).join("")}</div>
+    ${graded?`<div class="why">${esc(q.why)}</div>`:""}</div>`).join("")}
+  <div class="row">${graded? `<span class="pill ${L.L1?"ok":"warn"}">${st.p6.quizScore}/4 ${L.L1?"レベル 1 合格":"不合格。P2 を復習してから再テスト"}</span><button class="btn ghost small" onclick="I(${id}).p6.graded=false;I(${id}).p6.quiz=[];save();render()">再テスト</button>`
+    : `<button class="btn" onclick="grade(${id})">提出する</button>`}</div>
+
+  <h3>レベル 4・ボス戦：${esc(d.boss)}${st.p6.boss===1?"（再戦：新しい事例）":""}</h3>
+  ${!L.L1? `<div class="card muted">上の確認テストに合格すると、ボスが現れます。</div>` : `
+  <div class="puzzle"><span class="tag">失敗事例・診断せよ</span><br>${esc(b.text)}</div>
+  <div class="opts">${ord(b.opts.length,id*100+st.p6.boss).map(k=>{ const o=b.opts[k];
+    const cls = bt!=null ? (k===b.a && st.p6.bossOK?"right":(k===bt && k!==b.a?"wrong":"")) : "";
+    return `<label class="opt ${cls}"><input type="radio" name="boss" ${bt===k?"checked":""} ${st.p6.bossOK||bt!=null?"disabled":""} onchange="bossPick(${id},${k})"> <span>${esc(o)}</span></label>`;}).join("")}</div>
+  ${bt!=null ? (st.p6.bossOK
+    ? `<div class="result ok"><b>${esc(d.boss)}を倒しました！</b> ${esc(b.why)}</div>`
+    : `<div class="result bad"><b>今回の診断は外れです。</b>${esc(b.why)}<br>${st.p6.boss===0
+        ? `<button class="btn coral small" style="margin-top:8px" onclick="rematch(${id})">ボスに再挑戦（新しい事例で）</button>`
+        : `2 つの事例とも不正解です。P2 で原理を読み直し、P5 で穴を埋めてから、<button class="btn coral small" onclick="resetBoss(${id})">もう一度挑戦</button>`}</div>`) : ""}
+  `}
+  ${st.p6.bossOK? `<div class="swan" style="margin-top:16px"><div class="tag">ブラックスワン・イベント</div><p style="margin:.4em 0">${esc(d.swan)}</p>
+    <textarea style="background:#2c3d49;color:#efe9d8;border-color:#44596a" oninput="I(${id}).swan=this.value;save()" placeholder="あなたの推論を書いてください（任意。書くと予測ポイント +1）">${esc(st.swan)}</textarea>
+    <div class="row" style="margin-top:8px"><button class="btn small" style="background:#f0c96a;color:#22313c" onclick="if(len(I(${id}).swan)>=10){award(I(${id}),'swan',1);save();render()}else toast('もう少し考えを書いてみましょう')">提出</button></div></div>`:""}
+  <h3>レベル 1〜4 セルフチェック</h3>
+  <div class="levels">${[["レベル 1 再現",L.L1,"P6 の確認テストへ"],["レベル 2 説明",L.L2,"P4 の説明と評価へ"],["レベル 3 予測",L.L3,"P1 で理由、P3 でずれを書く"],["レベル 4 診断",L.L4,"ボスに挑む"]].map(x=>`<div class="lv ${x[1]?"ok":""}"><b>${x[0]} ${x[1]?"✓":"✗"}</b>${x[1]?"達成":x[2]}</div>`).join("")}</div>
+  ${passed(id)?`<div class="result ok">4 つのレベルをすべて達成。この島はクリアです。</div>`:`<div class="muted">レベル 3 に届いていない島は、どれだけ点数が高くても合格になりません。</div>`}`;
+}
+function qa(id,i,k){ const st=I(id); st.p6.quiz=st.p6.quiz||[]; st.p6.quiz[i]=k; save(); }
+function grade(id){ const st=I(id), d=isl(id), a=st.p6.quiz||[]; if(d.quiz.some((q,i)=>a[i]==null)) return toast("4 問すべて答えてください"); st.p6.quizScore=d.quiz.filter((q,i)=>a[i]===q.a).length; st.p6.graded=true; if(st.p6.quizScore>=3) award(st,"quiz",1); save(); checkPass(id); render(); }
+function bossPick(id,k){ const st=I(id), b=isl(id).bosses[st.p6.boss]; st.p6.bossTry=k; st.p6.bossOK = (k===b.a); st.p6.bossTries.push({c:st.p6.boss,k,ok:st.p6.bossOK,t:Date.now()}); if(st.p6.bossOK) award(st,"boss",5); save(); checkPass(id); render(); }
+function rematch(id){ const st=I(id); st.p6.boss=1; st.p6.bossTry=null; save(); render(); }
+function resetBoss(id){ const st=I(id); st.p6.boss=0; st.p6.bossTry=null; save(); render(); }
+
+/* Island 12: capstone */
+function finalRound(id, r){
+  const st=I(id), f=FINAL_ROUNDS[r];
+  let html = `${head("P"+(r+1)+" "+f.title, f.title, esc(f.desc))}` +
+    f.fields.map(x=>`<label class="f">${esc(x[1])}</label><textarea style="min-height:${x[0]==="doc"||x[0]==="decisions"?180:90}px" oninput="I(${id}).f['${x[0]}']=this.value;save()">${esc(st.f[x[0]])}</textarea>`).join("");
+  if (r===1) html += `<div class="card muted">11 の島の原理：${ISLANDS.filter(d=>!d.final).map(d=>`第 ${d.id} 島 ${esc(d.badge)}（${esc(d.topic)}）`).join("、")}</div>`;
+  if (r===5){
+    const L=levels(id);
+    html += `<h3>卒業評価表（自己評価、各項目 0〜3 点）</h3><div class="card">${FINAL_RUBRIC.map(x=>`<div style="margin:8px 0"><b>${esc(x[0])}（${x[1]}%）</b>　<span class="muted">${esc(x[2])}</span><div class="row" style="margin-top:4px">${[0,1,2,3].map(n=>`<button class="btn small ${st.rubric[x[0]]===n?"":"ghost"}" onclick="I(${id}).rubric['${x[0]}']=${n};save();render()">${n}</button>`).join("")}</div></div>`).join("")}
+      <div class="result ${L.L2?"ok":"bad"}">加重合計：<b>${L.score}</b> / 100（60 点以上が必要）</div></div>
+      <h3>最終ボス：総合診断</h3>
+      <p class="muted">これまでの 11 の島から失敗事例を 3 つランダムに出題します。3 問すべて正解すれば、現実世界の魔王を倒せます。</p>
+      ${finalBoss(id)}`;
+  }
+  return html;
+}
+function finalBoss(id){
+  const st=I(id);
+  if (!st.p6.fb){ const pool=[]; ISLANDS.filter(d=>!d.final).forEach(d=>d.bosses.forEach((b,k)=>pool.push([d.id,k]))); st.p6.fb = shuffleIdx(pool.length, Date.now()).slice(0,3).map(i=>pool[i]); st.p6.fa=[]; save(); }
+  const graded=st.p6.fg;
+  return st.p6.fb.map(([iid,k],n)=>{ const b=isl(iid).bosses[k], a=st.p6.fa[n];
+    return `<div class="card"><div class="muted">事例 ${n+1}</div><b>${esc(b.text)}</b><div class="opts">${ord(b.opts.length,iid*100+k).map(j=>{ const o=b.opts[j];
+      const cls = graded? (j===b.a?"right":(a===j?"wrong":"")):"";
+      return `<label class="opt ${cls}"><input type="radio" name="fb${n}" ${a===j?"checked":""} ${graded?"disabled":""} onchange="I(${id}).p6.fa[${n}]=${j};save()"> <span>${esc(o)}</span></label>`;}).join("")}</div>
+      ${graded?`<div class="why">第 ${iid} 島（${esc(isl(iid).boss)}）より：${esc(b.why)}</div>`:""}</div>`; }).join("") +
+    `<div class="row">${graded? (st.p6.finalOK?`<span class="pill ok">現実世界の魔王を撃破</span>`:`<span class="pill warn">全問正解ならず</span><button class="btn coral small" onclick="I(${id}).p6.fb=null;I(${id}).p6.fg=false;save();render()">新しい事例でもう一度戦う</button>`)
+      : `<button class="btn" onclick="gradeFinal(${id})">診断を提出</button>`}</div>`;
+}
+function gradeFinal(id){ const st=I(id); if(st.p6.fb.some((x,n)=>st.p6.fa[n]==null)) return toast("3 問すべて答えてください"); st.p6.fg=true; st.p6.finalOK = st.p6.fb.every(([iid,k],n)=>isl(iid).bosses[k].a===st.p6.fa[n]); if(st.p6.finalOK) award(st,"final",10); save(); checkPass(id); render(); }
+
+/* castle repair (spaced review) */
+function repair(id){
+  const d=isl(id); if(d.final){ I(id).lastReview=Date.now(); save(); render(); return; }
+  const q=d.quiz[Math.floor(Math.random()*d.quiz.length)];
+  showDlg(`<h2>城の修理：${esc(d.name)}</h2><p class="muted">ノートを見ずに、この 1 問に答えてください。</p><p><b>${esc(q.q)}</b></p>
+  <div class="opts">${ord(q.opts.length,Date.now()%997).map(k=>[q.opts[k],k]).map(([o,k])=>`<button class="opt" onclick="repairAns(${id},${k===q.a},${js(q.why)})">${esc(o)}</button>`).join("")}</div>`);
+}
+function repairAns(id, ok, why){
+  if (ok){ I(id).lastReview=Date.now(); save(); showDlg(`<h2>城壁を修理しました</h2><p>${esc(why)}</p><button class="btn" onclick="closeDlg();render()">OK</button>`); }
+  else showDlg(`<h2>まだ修理できていません</h2><p>${esc(why)}</p><p class="muted">この島の P2 に戻って原理を読み直し、もう一度修理に挑戦しましょう。</p><div class="row"><button class="btn" onclick="closeDlg();go('island',${id});setRound(${id},1)">復習しに行く</button><button class="btn ghost" onclick="closeDlg()">あとで</button></div>`);
+}
+
+/* ---------- how to play ---------- */
+function guideView(){
+  return `<h2>遊び方</h2>
+  <p class="lead">これは 12 週間・週約 3 時間のコースです。技術の予備知識がない人を、「モデルはなぜこう答えるのか」から、プロンプト、コンテキストエンジニアリング、エージェント、評価、安全性まで導きます。3 つの方法を組み合わせ、それぞれがひとつの役割を担います：</p>
+  <div class="grid2">
+    <div class="card"><b>オクタリシス（八角フレームワーク）</b>は「学びたいか」を担当：島、モンスター、バッジ、ブラックスワン、城の風化。<br><span class="muted">ただしバッジは「理解」にだけ結びつけ、出席やポイント稼ぎには結びつけません。</span></div>
+    <div class="card"><b>ポモドーロ・テクニック</b>は「集中できるか」を担当：1 ラウンド＝25 分のポモドーロ 1 個、一度にひとつだけ。右下がタイマーです。</div>
+    <div class="card"><b>ファインマン・テクニック</b>は「本当にわかったか」を担当：どの島でも 12 歳の子にわかる言葉で説明します。つまずいたところが、理解の穴です。</div>
+    <div class="card"><b>必要なもの</b>：何らかの AI チャットツール（実験室のプロンプトを実行するため）、このページ、そして少しの正直さ。</div>
+  </div>
+  <h3>1 島 6 ラウンド＝ポモドーロ 6 個</h3>
+  <div class="card"><ol>
+    <li><b>P1 偵察</b>：謎を読み、まず予測と理由を書く。</li>
+    <li><b>P2 解読</b>：原理を読み、因果の流れを組み立てる。</li>
+    <li><b>P3 実験室</b>：AI ツールで実験し、「予測・結果・ずれの原因」を記録する。</li>
+    <li><b>P4 教え合い対決</b>：1 分間の説明。仲間と評価し合うか、AI に 12 歳の子役で質問してもらう。その後 20 分の長い休憩。</li>
+    <li><b>P5 補給</b>：穴を埋め、たとえ話を書き、当てはまらない点も書く。</li>
+    <li><b>P6 ボス戦</b>：確認テスト 4 問中 3 問正解のあと、見たことのない失敗事例を診断する。</li>
+  </ol></div>
+  <h3>「身についた」の判定基準</h3>
+  <div class="card"><table class="gold"><tr><th>レベル</th><th>できること</th><th>確認する場所</th></tr>
+  <tr><td>1 再現</td><td>概念と手順を言える</td><td>P6 確認テスト</td></tr>
+  <tr><td>2 説明</td><td>12 歳の子にわかる言葉で「なぜ」を説明できる</td><td>P4 ファインマン説明</td></tr>
+  <tr><td>3 予測</td><td>変更する前に結果を予測し、理由を言える</td><td>P1 予測＋P3 実験記録</td></tr>
+  <tr><td>4 診断</td><td>失敗を見て原因を見つけられる</td><td>P6 ボス戦</td></tr></table>
+  <p class="muted" style="margin-bottom:0">4 つのレベルすべてを達成して、はじめてクリアです。予測ポイントやポモドーロの数はフィードバックにすぎず、合格条件には含まれません。</p></div>
+  <h3>ポモドーロのルール</h3>
+  <div class="card"><ul>
+    <li>1 個につきひとつのことだけ。25 分間はメッセージを見ない、作業を切り替えない。</li>
+    <li>短い休憩は 5 分。P4 のあとは 20 分の長い休憩。休憩中はコースの内容に触れない。</li>
+    <li>時間が来たら止める。終わらなかった分はメモして次の 1 個に回す。</li>
+    <li>中断されたら「中断された」を押して理由を記録。いちばん多い気が散る原因は「記録」ページで確認できます。</li>
+    <li>25 分が合わない？大切なのは「ひとつの作業に、中断されずに」取り組むこと。15〜50 分に調整して構いません。</li>
+    <li>翌日にポモドーロを 1 個使い、ノートを見ずに前週の原理をもう一度説明する。7 日以上復習しないとバッジが暗くなり、「城の修理」問題に 1 問正解すると元に戻ります。</li>
+  </ul></div>
+  <h3>講師・グループの方へ</h3>
+  <div class="card">海図の「フリーモード」にチェックを入れると、準備のために全島を解放できます。グループで学ぶ場合は 3〜4 人で「ギルド」をつくり、実験係・説明係・評価係・記録係を毎週交代します。P4 はギルドの評価係が同じ評価表で採点します。進捗は各自のブラウザにだけ保存され、「記録」ページから書き出せます。コース設計の全文（繁体字中国語）はリポジトリ内の <code>課程設計.md</code> にあります。</div>
+  <h3>データの安全</h3>
+  <div class="card">実験には必ず架空のデータか、個人を特定できないよう加工したデータを使ってください。会社の機密や顧客の個人情報を AI ツールに貼り付けないでください。このページが、あなたの書いた内容をネットワークに送信することはありません。</div>
+  <p class="muted">このコースは <a href="https://creativecommons.org/licenses/by-sa/4.0/deed.ja" target="_blank" rel="noopener">CC BY-SA 4.0</a> ライセンスで公開しています。出典を表示し、改変した作品も同じライセンスで公開する限り、自由に共有・改変・商用利用できます。</p>`;
+}
+
+/* ---------- spellbook ---------- */
+function bookView(){
+  const rows = ISLANDS.filter(d=>S.isl[d.id]).map(d=>{ const st=I(d.id);
+    if (d.final) return `<h3>第 12 島・王冠の島 ${passed(d.id)?`<span class="pill gold">${esc(d.badge)}</span>`:""}</h3>${FINAL_ROUNDS.map(f=>f.fields.map(x=>`<div class="q">${esc(x[1])}</div><div class="a">${esc(st.f[x[0]])||'<span class="empty">（未記入）</span>'}</div>`).join("")).join("")}`;
+    const it=(q,a)=>`<div class="q">${q}</div><div class="a">${a&&a.trim()?esc(a):'<span class="empty">（未記入）</span>'}</div>`;
+    return `<h3>第 ${d.id} 島・${esc(d.name)}　<span class="pill ${passed(d.id)?"gold":""}">${passed(d.id)?esc(d.badge):"未クリア"}</span></h3>
+      ${it("わたしの予測と理由", st.p1.reason)}${it("実験：結果", st.p3.result)}${it("実験：ずれの原因", st.p3.gap)}
+      ${it("1 分間説明", st.p5.final||st.p4.text)}${it("たとえ", st.p5.analogy)}${it("たとえが当てはまらない点", st.p5.limit)}${it("ブラックスワンの推論", st.swan)}`;
+  }).join("");
+  return `<div class="row" style="justify-content:space-between"><h2>わたしの呪文の書</h2><div class="row"><button class="btn" onclick="exportMd()">Markdown をダウンロード</button><button class="btn ghost" onclick="window.print()">印刷</button></div></div>
+  <p class="lead">あなたが書いた予測、説明、たとえは、すべてここに集まります。これはあなたのもの。卒業するときに持ち帰りましょう。</p>
+  <div class="card book">${rows || '<p class="empty">まだ何もありません。はじまりの港から出発しましょう。</p>'}</div>`;
+}
+function exportMd(){
+  let md = "# わたしの呪文の書（コンテキスト群島）\n\n";
+  ISLANDS.filter(d=>S.isl[d.id]).forEach(d=>{ const st=I(d.id);
+    md += `## 第 ${d.id} 島・${d.name}${passed(d.id)?`（バッジ：${d.badge}）`:""}\n\n`;
+    if (d.final){ FINAL_ROUNDS.forEach(f=>f.fields.forEach(x=>{ md+=`### ${x[1]}\n\n${st.f[x[0]]||"（未記入）"}\n\n`; })); return; }
+    [["謎",d.puzzle.text],["わたしの予測と理由",st.p1.reason],["実験結果",st.p3.result],["ずれの原因",st.p3.gap],["1 分間説明",st.p5.final||st.p4.text],["たとえ",st.p5.analogy],["たとえが当てはまらない点",st.p5.limit],["ブラックスワンの推論",st.swan]]
+      .forEach(([k,v])=>{ md+=`### ${k}\n\n${v||"（未記入）"}\n\n`; });
+  });
+  download("spellbook-ja.md", md, "text/markdown");
+}
+function download(name, text, type){ const a=document.createElement("a"); a.href=URL.createObjectURL(new Blob([text],{type:type+";charset=utf-8"})); a.download=name; document.body.appendChild(a); a.click(); setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},500); }
+
+/* ---------- log ---------- */
+function logView(){
+  const cnt={}; S.interrupts.forEach(x=>{ cnt[x.reason]=(cnt[x.reason]||0)+1; });
+  const top=Object.entries(cnt).sort((a,b)=>b[1]-a[1]);
+  return `<h2>記録</h2>
+  <div class="grid2">
+    <div class="card"><b>ポモドーロ</b><p>完了：<b>${S.pomos}</b> 個</p><b>中断</b>
+      ${top.length? `<ul>${top.map(([r,n])=>`<li>${esc(r)}：${n} 回</li>`).join("")}</ul><p class="muted">いちばん多い気が散る原因から、次回は先に取り除きましょう。</p>` : `<p class="muted">まだ記録がありません。</p>`}</div>
+    <div class="card"><b>各島の状況</b><ul>${ISLANDS.map(d=>{const L=S.isl[d.id]?levels(d.id):null; return `<li>${esc(d.name)}：${L?["L1","L2","L3","L4"].map(k=>k+(L[k]?"✓":"・")).join(" "):"未出発"}</li>`;}).join("")}</ul></div>
+  </div>
+  <div class="card"><b>バックアップと引っ越し</b><p class="muted">進捗はこのパソコンのこのブラウザにだけ保存されます。パソコンを替えたり閲覧データを消去したりする前に、書き出しておきましょう。</p>
+    <div class="row"><button class="btn" onclick="download('context-islands-progress.json', JSON.stringify(S,null,1), 'application/json')">進捗を書き出す</button>
+    <label class="btn ghost">進捗を読み込む<input type="file" accept=".json" hidden onchange="importJson(this.files[0])"></label>
+    <button class="btn ghost" style="margin-left:auto;color:var(--warn);border-color:var(--warn)" onclick="if(confirm('すべての進捗を消去しますか？この操作は元に戻せません。')){S=blank();save();render()}">すべての進捗を消去</button></div></div>`;
+}
+function importJson(file){ if(!file) return; file.text().then(t=>{ try{ const s=JSON.parse(t); if(s.v!==1||!s.isl) throw 0; S=s; save(); render(); toast("読み込みました"); }catch(e){ toast("ファイルの形式が正しくありません"); } }); }
+
+/* ---------- dialog ---------- */
+function showDlg(html){ const d=$("#dlg"); d.innerHTML=html; if(!d.open) d.showModal(); }
+function closeDlg(){ $("#dlg").close(); }
+
+/* ---------- pomodoro ---------- */
+const P = { left:25*60, running:false, mode:"focus", ctx:null, h:null, end:0 };
+function fmt(s){ return String(Math.floor(s/60)).padStart(2,"0")+":"+String(s%60).padStart(2,"0"); }
+function pomoDraw(){
+  $("#pTime").textContent=fmt(P.left); $("#pMini").textContent=fmt(P.left);
+  $("#pomo").classList.toggle("brk", P.mode!=="focus");
+  $("#pMode").textContent = P.mode==="focus" ? "集中 25 分・一度にひとつだけ" : (P.mode==="long"?"長い休憩 20 分・コースの内容に触れない":"短い休憩 5 分・立って体を動かそう");
+  $("#pCtx").textContent = P.ctx ? `第 ${P.ctx[0]} 島・${(isl(P.ctx[0]).final?FINAL_ROUNDS[P.ctx[1]].title:ROUNDS[P.ctx[1]][0]+" "+ROUNDS[P.ctx[1]][1])}` : "ラウンド未設定";
+  $("#pStart").textContent = P.running ? "一時停止" : "開始";
+}
+function pomoTick(){
+  P.left = Math.max(0, Math.round((P.end-Date.now())/1000)); pomoDraw();
+  if (P.left<=0){ clearInterval(P.h); P.running=false; beep();
+    if (P.mode==="focus"){ S.pomos++; save(); const long = P.ctx && P.ctx[1]===3;
+      P.mode = long?"long":"short"; P.left=(long?20:5)*60; toast(long?"P4 完了。20 分の長い休憩です":"時間です。手を止めて 5 分休憩しましょう"); }
+    else { P.mode="focus"; P.left=25*60; toast("休憩終了。次の 1 個を始めましょう"); }
+    pomoDraw();
+  }
+}
+function pomoStart(){ if(P.running){ clearInterval(P.h); P.running=false; } else { P.end=Date.now()+P.left*1000; P.h=setInterval(pomoTick,500); P.running=true; } pomoDraw(); }
+function pomoFor(id,r){ P.ctx=[id,r]; if(!P.running){ P.mode="focus"; P.left=25*60; pomoStart(); } else pomoDraw(); $("#pomo").classList.remove("mini"); toast("ポモドーロをこのラウンドに設定しました"); }
+function bindPomoCtx(){ if(!P.running && view.id) { P.ctx=[view.id, I(view.id).round]; pomoDraw(); } }
+function beep(){ try{ const c=new (window.AudioContext||window.webkitAudioContext)(); [0,0.35,0.7].forEach(t=>{ const o=c.createOscillator(), g=c.createGain(); o.frequency.value=660; o.connect(g); g.connect(c.destination); g.gain.setValueAtTime(.15,c.currentTime+t); g.gain.exponentialRampToValueAtTime(.001,c.currentTime+t+.3); o.start(c.currentTime+t); o.stop(c.currentTime+t+.3); }); }catch(e){} }
+$("#pStart").onclick=pomoStart;
+$("#pReset").onclick=()=>{ clearInterval(P.h); P.running=false; P.mode="focus"; P.left=25*60; pomoDraw(); };
+$("#pFold").onclick=()=>{ $("#pomo").classList.toggle("mini"); $("#pFold").textContent=$("#pomo").classList.contains("mini")?"ひらく":"たたむ"; };
+$("#pInt").onclick=()=>{
+  showDlg(`<h2>何に中断されましたか？</h2><p class="muted">記録するだけで OK。自分を責める必要はありません。あとでいちばん多い原因を確認しましょう。</p>
+  <div class="opts">${["スマホの通知","メッセージや電話","同僚に話しかけられた","ほかのことを考えてしまった","疲れた","その他"].map(r=>`<button class="opt" onclick="logInt('${r}')">${r}</button>`).join("")}</div>`);
+};
+function logInt(r){ S.interrupts.push({reason:r, t:Date.now(), ctx:P.ctx}); save(); closeDlg(); toast("記録しました"); }
+
+/* ---------- boot ---------- */
+window.addEventListener("hashchange", ()=>{ fromHash(); render(); });
+fromHash(); render(); pomoDraw();
+if (window.innerWidth < 720){ $("#pomo").classList.add("mini"); $("#pFold").textContent="ひらく"; }
+</script>
+</body>
+</html>

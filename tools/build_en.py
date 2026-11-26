@@ -15,13 +15,8 @@ import sys
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 OUT = ROOT / "en"
 
-LANG_RE = re.compile(r"<!--LANG-->.*?<!--/LANG-->", re.S)
-LANG_EN = (
-    "<!--LANG-->"
-    "<a class=\"lang\" href=\"../\" onclick=\"this.href=this.getAttribute('href')+location.hash\" lang=\"zh-Hant\">繁體中文</a>"
-    "<a class=\"lang\" href=\"../zh-hans/\" onclick=\"this.href=this.getAttribute('href')+location.hash\" lang=\"zh-Hans\">简体中文</a>"
-    "<!--/LANG-->"
-)
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
+import langs  # noqa: E402
 
 # (原文, 英文)。依序替換：長的、特定的放前面，短的通用詞放最後。
 PAIRS = [
@@ -325,17 +320,19 @@ PAIRS = [
 CJK = re.compile(r"[　-〿一-鿿＀-￯]")
 
 
-def main() -> None:
+def translate(pairs, check_cjk=True) -> str:
     html = (ROOT / "index.html").read_text(encoding="utf-8")
-    missing = [a for a, _ in PAIRS if a not in html]
+    missing = [a for a, _ in pairs if a not in html]
     if missing:
         sys.exit("原稿裡找不到這些對照（介面改過了？請更新 PAIRS）：\n" + "\n".join(missing))
-    for a, b in PAIRS:
+    for a, b in pairs:
         html = html.replace(a, b)
-    if not LANG_RE.search(html):
-        sys.exit("找不到 <!--LANG--> 語言切換區塊")
-    html = LANG_RE.sub(lambda m: LANG_EN, html)
+    return html
 
+
+def main() -> None:
+    html = translate(PAIRS)
+    html = langs.apply(html, "en/")
     leftover = []
     for i, line in enumerate(html.splitlines(), 1):
         if "<!--LANG-->" in line:

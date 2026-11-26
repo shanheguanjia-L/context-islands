@@ -51,14 +51,8 @@ FIXES = [
     ("「", "“"), ("」", "”"), ("『", "‘"), ("』", "’"),
 ]
 
-import re
-LANG_RE = re.compile(r"<!--LANG-->.*?<!--/LANG-->", re.S)
-LANG_ZH_HANS = (
-    "<!--LANG-->"
-    "<a class=\"lang\" href=\"../\" onclick=\"this.href=this.getAttribute('href')+location.hash\" lang=\"zh-Hant\">繁體中文</a>"
-    "<a class=\"lang\" href=\"../en/\" onclick=\"this.href=this.getAttribute('href')+location.hash\" lang=\"en\">English</a>"
-    "<!--/LANG-->"
-)
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
+import langs  # noqa: E402
 
 
 def convert(text: str) -> str:
@@ -72,9 +66,7 @@ def main() -> None:
     OUT.mkdir(exist_ok=True)
 
     html = convert((ROOT / "index.html").read_text(encoding="utf-8"))
-    if not LANG_RE.search(html):
-        sys.exit("index.html 裡找不到 <!--LANG--> 語言切換區塊，腳本需要更新")
-    html = LANG_RE.sub(lambda m: LANG_ZH_HANS, html)
+    html = langs.apply(html, "zh-hans/")
     (OUT / "index.html").write_text(html, encoding="utf-8")
 
     (OUT / "data.js").write_text(convert((ROOT / "data.js").read_text(encoding="utf-8")), encoding="utf-8")

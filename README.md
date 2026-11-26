@@ -1,6 +1,6 @@
 # 脈絡群島：提示詞工程與脈絡工程，從零到內化
 
-[English](README.en.md)
+[English](README.en.md) ・ [日本語](README.ja.md)
 
 一門給零基礎職場人士的 12 週自學／帶課教材，做成一個不用安裝、打開就能玩的網頁。
 
@@ -16,7 +16,7 @@
 
 **線上直接玩：<https://shanheguanjia-l.github.io/context-islands/>**
 
-**简体中文版：<https://shanheguanjia-l.github.io/context-islands/zh-hans/>**　**English: <https://shanheguanjia-l.github.io/context-islands/en/>**（頁面右上角可隨時切換，進度各語言共用）
+**简体中文版：<https://shanheguanjia-l.github.io/context-islands/zh-hans/>**　**English: <https://shanheguanjia-l.github.io/context-islands/en/>**　**日本語：<https://shanheguanjia-l.github.io/context-islands/ja/>**（頁面右上角可隨時切換，進度各語言共用）
 
 也可以離線使用：
 
@@ -50,6 +50,8 @@
 - `課程設計.md`：完整課程設計原稿（給講師與管理者）。
 - `zh-hans/`：簡體中文版，由 `tools/build_zh_hans.py` 從繁體版自動產生（OpenCC 台灣正體轉大陸簡體，再補上課程用語修正）。**不要直接改這個資料夾**，改繁體版後重跑腳本。
 - `en/`：英文版。`en/data.js` 教學內容是人工翻譯的，**改了 `data.js` 要同步改它**；`en/index.html` 由 `tools/build_en.py` 依對照表從繁體版產生，介面有沒翻到的中文腳本會直接報錯。
+- `ja/`：日文版。`ja/data.js` 人工翻譯，**改了 `data.js` 也要同步改它**；`ja/index.html` 由 `tools/build_ja.py` 依對照表產生。
+- `tools/langs.py`：右上角語言切換的共用設定；新增語言時在這裡加一行，再重跑各個產生腳本。
 
 ## 參與貢獻
 

@@ -1,5 +1,7 @@
 # 脈絡群島：提示詞工程與脈絡工程，從零到內化
 
+[English](README.en.md)
+
 一門給零基礎職場人士的 12 週自學／帶課教材，做成一個不用安裝、打開就能玩的網頁。
 
 課程設計結合三套方法，各管一件事：
@@ -14,7 +16,7 @@
 
 **線上直接玩：<https://shanheguanjia-l.github.io/context-islands/>**
 
-**简体中文版：<https://shanheguanjia-l.github.io/context-islands/zh-hans/>**（頁面右上角可隨時切換，進度兩版共用）
+**简体中文版：<https://shanheguanjia-l.github.io/context-islands/zh-hans/>**　**English: <https://shanheguanjia-l.github.io/context-islands/en/>**（頁面右上角可隨時切換，進度各語言共用）
 
 也可以離線使用：
 
@@ -47,6 +49,7 @@
 - `data.js`：全部教學內容（謎題、原理、實驗提示詞、抽問、Boss 案例）。**改內容只要改這個檔。**
 - `課程設計.md`：完整課程設計原稿（給講師與管理者）。
 - `zh-hans/`：簡體中文版，由 `tools/build_zh_hans.py` 從繁體版自動產生（OpenCC 台灣正體轉大陸簡體，再補上課程用語修正）。**不要直接改這個資料夾**，改繁體版後重跑腳本。
+- `en/`：英文版。`en/data.js` 教學內容是人工翻譯的，**改了 `data.js` 要同步改它**；`en/index.html` 由 `tools/build_en.py` 依對照表從繁體版產生，介面有沒翻到的中文腳本會直接報錯。
 
 ## 參與貢獻
 

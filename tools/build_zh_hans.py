@@ -51,8 +51,14 @@ FIXES = [
     ("「", "“"), ("」", "”"), ("『", "‘"), ("』", "’"),
 ]
 
-LANG_LINK_SRC = '<a class="lang" href="zh-hans/"'
-LANG_LINK_DST = '<a class="lang" href="../"'
+import re
+LANG_RE = re.compile(r"<!--LANG-->.*?<!--/LANG-->", re.S)
+LANG_ZH_HANS = (
+    "<!--LANG-->"
+    "<a class=\"lang\" href=\"../\" onclick=\"this.href=this.getAttribute('href')+location.hash\" lang=\"zh-Hant\">繁體中文</a>"
+    "<a class=\"lang\" href=\"../en/\" onclick=\"this.href=this.getAttribute('href')+location.hash\" lang=\"en\">English</a>"
+    "<!--/LANG-->"
+)
 
 
 def convert(text: str) -> str:
@@ -66,10 +72,9 @@ def main() -> None:
     OUT.mkdir(exist_ok=True)
 
     html = convert((ROOT / "index.html").read_text(encoding="utf-8"))
-    if LANG_LINK_SRC not in html:
-        sys.exit("index.html 裡找不到語言切換連結，腳本需要更新")
-    html = html.replace(LANG_LINK_SRC, LANG_LINK_DST)
-    html = html.replace(">简体中文</a>", ">繁體中文</a>")
+    if not LANG_RE.search(html):
+        sys.exit("index.html 裡找不到 <!--LANG--> 語言切換區塊，腳本需要更新")
+    html = LANG_RE.sub(lambda m: LANG_ZH_HANS, html)
     (OUT / "index.html").write_text(html, encoding="utf-8")
 
     (OUT / "data.js").write_text(convert((ROOT / "data.js").read_text(encoding="utf-8")), encoding="utf-8")

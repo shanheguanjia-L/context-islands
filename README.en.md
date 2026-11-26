@@ -8,7 +8,7 @@ A 12-week self-study / classroom course for working professionals with no techni
 
 The course combines three methods, each with one job:
 
-- **Octalysis** handles *wanting to learn*: 12 islands, failure monsters, badges, black-swan events, and a knowledge castle that erodes without review.
+- **Octalysis** (the gamification framework by Yu-kai Chou) handles *wanting to learn*: 12 islands, failure monsters, badges, black-swan events, and a knowledge castle that erodes without review.
 - **The Pomodoro technique** handles *focus*: each island is 6 rounds = 6 pomodoros of 25 minutes.
 - **The Feynman technique** handles *real understanding*: on every island you must explain the principle in words a 12-year-old would understand.
 

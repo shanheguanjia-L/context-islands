@@ -261,7 +261,12 @@ def accept_i18n(zh, langs):
 # ---------- 產生檔是不是最新 ----------
 def opencc_python():
     """找一個裝了 opencc 的 Python（簡體版要用）。找不到回傳 None。"""
-    cands = [os.environ.get("OPENCC_PYTHON"), sys.executable, str(pathlib.Path.home() / ".browser-use-env/bin/python3"), "python3"]
+    local = {}
+    try:  # 本機設定（不進版控）：.evolve/local.json 的 {"opencc_python": "..."}
+        local = json.loads((ROOT / ".evolve" / "local.json").read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        pass
+    cands = [os.environ.get("OPENCC_PYTHON"), local.get("opencc_python"), sys.executable, "python3"]
     for c in cands:
         if not c or not shutil.which(c) and not pathlib.Path(c).exists():
             continue
@@ -279,7 +284,7 @@ def run_builders():
         exe = sys.executable
         if b == "build_zh_hans.py":
             if not py:
-                skipped.append("簡體版：這台電腦找不到裝了 opencc 的 Python（可設 OPENCC_PYTHON）")
+                skipped.append("簡體版：這台電腦找不到裝了 opencc 的 Python（設環境變數 OPENCC_PYTHON，或寫在 .evolve/local.json 的 opencc_python）")
                 continue
             exe = py
         r = subprocess.run([exe, str(TOOLS / b)], capture_output=True, text=True, cwd=ROOT, timeout=300)

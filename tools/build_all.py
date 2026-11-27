@@ -2,7 +2,8 @@
 """一行重建全部產生檔（語言切換、簡體版、英文版、日文版），再跑一次體檢。
 
 用法：python3 tools/build_all.py
-簡體版要用裝了 opencc 的 Python；找不到就跳過並明講（可設環境變數 OPENCC_PYTHON 指定）。
+簡體版要用裝了 OpenCC 1.4.2 的 Python；找不到就跳過並明講。指定方式：環境變數 OPENCC_PYTHON，
+或寫在 .evolve/local.json：{"opencc_python": "/path/to/python3"}（不進版控）。
 """
 import pathlib
 import subprocess

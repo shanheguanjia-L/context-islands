@@ -248,6 +248,15 @@ def write_report(items, res, notes, led):
                     f"git branch -D {e(info)}   # 丟棄</pre>")
         link = f' <a href="{e(it["url"])}">開啟</a>' if it.get("url") else ""
         rows.append(f"<tr><td>{e(it['kind'])}</td><td><b>{e(it['title'])}</b>{link}<div class='m'>{e(it.get('body','')[:400])}</div>{cmds}</td><td>{e(label)}</td></tr>")
+    seen_ids = {it["id"] for it in items}
+    waiting = {}
+    for x in led:  # 已起草、分支還在、等人看的（含直接交辦、或來源已不在清單上的）
+        if x.get("result") == "kept" and x.get("item") not in seen_ids and branch_exists(x.get("branch", "")):
+            waiting[x["branch"]] = x
+    wait_html = "".join(
+        f"<tr><td><b>{e(x.get('title',''))}</b><div class='m'>{e(x.get('ai_tail','')[-900:])}</div>"
+        f"<pre>git diff main...{e(b)}\ngit checkout main &amp;&amp; git merge --no-ff {e(b)} &amp;&amp; git push   # 採用（會上線）\n"
+        f"git branch -D {e(b)}   # 丟棄</pre></td><td>{e(x['ts'])}</td></tr>" for b, x in waiting.items())
     recent = "".join(f"<li>{e(x['ts'])}　{e(x.get('item',''))}　<b>{e(x.get('result',''))}</b>　{e(x.get('why',''))}</li>"
                      for x in led[-15:][::-1])
     note_html = "".join(f"<li>{e(n)}</li>" for n in notes)
@@ -262,6 +271,7 @@ table{{border-collapse:collapse;width:100%;background:var(--card)}}td,th{{border
 <h1>脈絡群島演化報表</h1>
 <p>{e(today())}　內容版本 {e(str(res.get('content_version')))}　體檢錯誤 {len(res['errors'])} 項　該重新驗證 {len(res['due'])} 座　待處理 {len(items)} 件</p>
 {f'<h2>這次沒查到（不算通過）</h2><ul>{note_html}</ul>' if notes else ''}
+{f'<h2>已起草、等你看（{len(waiting)}）</h2><table><tr><th>內容</th><th>起草時間</th></tr>{wait_html}</table>' if waiting else ''}
 <h2>待處理</h2>{'<table><tr><th>來源</th><th>內容</th><th>狀態</th></tr>' + ''.join(rows) + '</table>' if rows else '<p>沒有待處理的事。</p>'}
 <h2>最近的嘗試</h2><ul>{recent or '<li>還沒有</li>'}</ul>
 <p class="m">引擎不推送、不開 PR、不關 issue。採用指令裡的 git push 會讓網站上線，請看過差異再執行。</p>

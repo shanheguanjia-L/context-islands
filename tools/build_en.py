@@ -155,7 +155,7 @@ PAIRS = [
     ("<h3>評分表（夥伴評，或誠實自評）</h3>", "<h3>Rubric (scored by a partner, or honestly by yourself)</h3>"),
     ('<div class="h">項目</div>${[0,1,2,3].map(n=>`<div class="h">${n} 分</div>`)', '<div class="h">Criterion</div>${[0,1,2,3].map(n=>`<div class="h">${n} pt${n===1?"":"s"}</div>`)'),
     ('">平均：<b>${L.avg>=0?L.avg.toFixed(1):"尚未評完"}</b>（需 ≥ 2，且講解至少 60 字）。${L.L2?"層次 2 通過。":"0 或 1 分的項目，就是 P5 要回頭補的缺口。"}',
-     '">Average: <b>${L.avg>=0?L.avg.toFixed(1):"not fully scored"}</b> (needs ≥ 2, and an explanation of at least 60 characters). ${L.L2?"Level 2 passed.":"Any criterion scored 0 or 1 is a gap to go back and fill in P5."}'),
+     '">Average: <b>${L.avg>=0?L.avg.toFixed(1):"not fully scored"}</b> (needs ≥ 2, and an explanation of at least 180 characters). ${L.L2?"Level 2 passed.":"Any criterion scored 0 or 1 is a gap to go back and fill in P5."}'),
     # P5
     ('head("P5 補給","補漏與簡化","回頭補卡住的地方，再寫一個類比——<b>並說出這個類比在哪裡不適用</b>。這一步是費曼法最容易被跳過、也最重要的一步。")',
      'head("P5 Resupply","Fill gaps and simplify","Go back to where you got stuck, then write an analogy — <b>and say where the analogy breaks down</b>. This is the step of the Feynman technique most often skipped, and the most important.")'),
@@ -169,8 +169,8 @@ PAIRS = [
     ('<label class="f">修正後的一分鐘講解稿（選填，會收進咒語書）</label>', '<label class="f">Revised one-minute explanation (optional — goes into your spellbook)</label>'),
     ('submitP5(${id})">換取補給</button>', 'submitP5(${id})">Claim supplies</button>'),
     ('toast("先選一個答案")', 'toast("Pick an answer first")'),
-    ('toast("理由至少寫一句（8 字以上）")', 'toast("Write at least one sentence of reasoning (8+ characters)")'),
-    ('toast("「實際結果」和「落差原因」都要寫（各 8 字以上）")', 'toast("Fill in both \\"Actual result\\" and \\"Why the gap\\" (8+ characters each)")'),
+    ('toast("理由至少寫一句（8 字以上）")', 'toast("Write at least one sentence of reasoning (24+ characters)")'),
+    ('toast("「實際結果」和「落差原因」都要寫（各 8 字以上）")', 'toast("Fill in both \\"Actual result\\" and \\"Why the gap\\" (24+ characters each)")'),
     ('toast("實驗記錄已存，層次 3 檢核更新")', 'toast("Lab record saved — Level 3 check updated")'),
     ('toast("三欄都要寫：卡住處、類比、不適用處")', 'toast("Fill in all three: where you got stuck, the analogy, where it breaks down")'),
     ('toast("類比卡已收進咒語書")', 'toast("Analogy card added to your spellbook")'),
@@ -316,6 +316,9 @@ PAIRS = [
     # ---- 第 0 週樹幹（新文字都在各語言的 data.js：TRUNK、UI0、CARD_EXTRA；這裡只有程式註解）----
     ("/* 第 0 週 */", "/* week 0 */"),
     ("/* ---------- 第 0 週：樹幹（先量、先弄壞，再給一句話和四層） ---------- */", "/* ---------- week 0: the trunk (measure and break first, then one sentence and four layers) ---------- */"),
+    # ---- 字數門檻換算、網站圖示（子資料夾要往上一層找 icons/）----
+    ('const LEN_SCALE = 1; /* 字數門檻用中文字數訂。同樣的內容，英文約 3 倍字元、日文約 1.5 倍（用本課程三語譯文實測），英日版由產生腳本改這個倍數 */', 'const LEN_SCALE = 3; /* length thresholds are set in Chinese characters; the same content takes about 3x as many characters in English (measured on this course\'s own translations) */'),
+    ('href="icons/', 'href="../icons/'),
 ]
 
 CJK = re.compile(r"[　-〿一-鿿＀-￯]")

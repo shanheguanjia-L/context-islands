@@ -3,6 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" href="../icons/favicon-32.png" sizes="32x32"><link rel="icon" href="../icons/favicon.svg" type="image/svg+xml"><link rel="apple-touch-icon" href="../icons/apple-touch-icon.png">
 <title>コンテキスト群島｜プロンプトエンジニアリングとコンテキストエンジニアリング：ゼロから身につくまで</title>
 <style>
 :root{
@@ -223,6 +224,9 @@ function award(st, key, n){ if(!st.awarded[key]){ st.awarded[key]=1; S.pts += n;
 const $ = s => document.querySelector(s);
 const esc = s => String(s==null?"":s).replace(/[&<>"]/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const len = s => (s||"").trim().length;
+const LEN_SCALE = 1.5; /* length thresholds are set in Chinese characters; the same content takes about 1.5x as many characters in Japanese (measured on this course's own translations) */
+const need = n => Math.ceil(n * LEN_SCALE);
+const enough = (s, n) => len(s) >= need(n);
 const js = v => esc(JSON.stringify(v)).replace(/'/g,"&#39;");
 function toast(m){ const t=$("#toast"); t.textContent=m; t.classList.add("on"); clearTimeout(toast.h); toast.h=setTimeout(()=>t.classList.remove("on"),1800); }
 function copy(text){
@@ -248,9 +252,9 @@ function trunkLevels(){
   const T=TR(), b=T.t2, marks=T.t1.marks;
   const scored = t1Items().every((x,i)=>marks[i]!=null);
   return {
-    L1: len(T.t1.pred)>=8 && b.every(x=>x.locked && len(x.pred)>=8),
-    L2: scored && b.every(x=>len(x.res)>=8 && len(x.gap)>=8),
-    L3: len(T.t3.text)>=60 && TRUNK.sentenceChecks.every((c,i)=>T.t3.checks[i]),
+    L1: enough(T.t1.pred,8) && b.every(x=>x.locked && enough(x.pred,8)),
+    L2: scored && b.every(x=>enough(x.res,8) && enough(x.gap,8)),
+    L3: enough(T.t3.text,60) && TRUNK.sentenceChecks.every((c,i)=>T.t3.checks[i]),
     L4: !!T.t5.ok
   };
 }
@@ -258,10 +262,10 @@ function trunkPassed(){ return !!(S.trunk && S.trunk.passedAt); }
 function trunkRoundDone(r){
   const T=TR(), L=trunkLevels();
   switch(r){
-    case 0: return len(T.t1.pred)>=8 && t1Items().every((x,i)=>T.t1.marks[i]!=null) && len(T.t1.reflect)>=8;
-    case 1: return T.t2.every(x=>x.locked && len(x.res)>=8 && len(x.gap)>=8);
+    case 0: return enough(T.t1.pred,8) && t1Items().every((x,i)=>T.t1.marks[i]!=null) && enough(T.t1.reflect,8);
+    case 1: return T.t2.every(x=>x.locked && enough(x.res,8) && enough(x.gap,8));
     case 2: return L.L3;
-    case 3: return T.t4.mine.every(x=>len(x)>=8);
+    case 3: return T.t4.mine.every(x=>enough(x,8));
     case 4: return L.L4;
   }
 }
@@ -294,11 +298,11 @@ function trunkLvHtml(L){ return TU.levels.map((x,i)=>{ const ok=L["L"+(i+1)]; re
 function trTally(){ const m=TR().t1.marks, it=t1Items(); const c=k=>it.filter((x,i)=>m[i]===k).length; return t(TU.tally,{r:c(0),w:c(1),s:c(2),n:it.filter((x,i)=>m[i]!=null).length}); }
 function trReveal(k){
   const b=TR().t2[k], d=TRUNK.breaks[k];
-  if (!(b.locked && len(b.res)>=8 && len(b.gap)>=8)) return "";
+  if (!(b.locked && enough(b.res,8) && enough(b.gap,8))) return "";
   return `<div class="result ok"><b>${esc(TU.reveal)}</b><br>${esc(d.reveal)}</div><div class="why"><b>${esc(TU.whenNot)}</b>${esc(UI0.colon||"")}${esc(d.whenNot)}</div>`;
 }
 function trPrompt(p, n){ return `<div class="muted">${esc(TU.promptN)} ${n}</div><div class="prompt"><button class="btn small ghost cp" style="background:#f3efe2" onclick="copy(${js(p)})">${esc(TU.copy)}</button>${esc(p)}</div>`; }
-function trLock(k){ const b=TR().t2[k]; if (len(b.pred)<8) return toast(TU.needPred); b.locked=true; award(trAw(),"t2"+k,1); save(); render(); }
+function trLock(k){ const b=TR().t2[k]; if (!enough(b.pred,8)) return toast(TU.needPred); b.locked=true; award(trAw(),"t2"+k,1); save(); render(); }
 function trAw(){ const T=TR(); T.awarded=T.awarded||{}; return T; }
 function trMark(i,k){ TR().t1.marks[i]=k; save(); render(); }
 function trOwn(on){ const T=TR(); T.t1.custom = on ? Array.from({length:10},()=>({q:"",a:""})) : null; T.t1.marks=[]; save(); render(); }
@@ -309,7 +313,7 @@ function trDraw(){
 }
 function trGrade(){
   const T=TR(), x=T.t5;
-  if (x.draw.some((c,n)=>x.ans[n]==null || len(x.ev[n])<8)) return toast(TU.needAll);
+  if (x.draw.some((c,n)=>x.ans[n]==null || !enough(x.ev[n],8))) return toast(TU.needAll);
   x.graded=true; x.ok = x.draw.every((c,n)=>TRUNK.exam[c].layer===x.ans[n]);
   if (x.ok) award(trAw(),"t5",5);
   save(); render(); trunkCheck();
@@ -353,7 +357,7 @@ function trunkView(){
     <div class="puzzle">${esc(TRUNK.sentence)}</div>
     <label class="f">${esc(TU.t3Mine)}</label>
     <textarea style="min-height:150px" oninput="trSet('t3.text',this.value);document.getElementById('trCnt').textContent=this.value.trim().length">${esc(T.t3.text)}</textarea>
-    <div class="muted"><span id="trCnt">${len(T.t3.text)}</span> / 60</div>
+    <div class="muted"><span id="trCnt">${len(T.t3.text)}</span> / ${need(60)}</div>
     <p><b>${esc(TU.t3Check)}</b></p>
     <div class="opts">${TRUNK.sentenceChecks.map((c,i)=>`<label class="opt"><input type="checkbox" ${T.t3.checks[i]?"checked":""} onchange="TR().t3.checks[${i}]=this.checked;save();trRefresh()"> <span>${esc(c)}</span></label>`).join("")}</div>
     <div class="row"><button class="btn ghost" onclick="copy(${js(ask)})">${esc(TU.t3Ask)}</button></div>`;
@@ -408,7 +412,7 @@ function trunkLogLi(){ if(!S.trunk) return ""; const L=trunkLevels(); return `<l
 function levels(id){
   const d = isl(id), st = I(id);
   if (d.final){
-    const filled = FINAL_ROUNDS.every(r=>r.fields.every(f=>len(st.f[f[0]])>=10));
+    const filled = FINAL_ROUNDS.every(r=>r.fields.every(f=>enough(st.f[f[0]],10)));
     const rub = FINAL_RUBRIC.every(r=>st.rubric[r[0]]!=null);
     const score = FINAL_RUBRIC.reduce((a,r)=>a+(st.rubric[r[0]]||0)*r[1]/3,0);
     const bossOK = !!st.p6.finalOK;
@@ -418,8 +422,8 @@ function levels(id){
   const sc = st.p4.scores, avg = sc.every(x=>x>=0) ? sc.reduce((a,b)=>a+b,0)/5 : -1;
   return {
     L1: q>=3,
-    L2: avg>=2 && len(st.p4.text)>=60,
-    L3: len(st.p1.reason)>=8 && len(st.p3.result)>=8 && len(st.p3.gap)>=8,
+    L2: avg>=2 && enough(st.p4.text,60),
+    L3: enough(st.p1.reason,8) && enough(st.p3.result,8) && enough(st.p3.gap,8),
     L4: !!st.p6.bossOK,
     avg
   };
@@ -427,13 +431,13 @@ function levels(id){
 function passed(id){ if(!S.isl[id]) return false; const L=levels(id); return L.L1&&L.L2&&L.L3&&L.L4; }
 function roundDone(id, r){
   const d=isl(id), st=I(id);
-  if (d.final) return FINAL_ROUNDS[r].fields.every(f=>len(st.f[f[0]])>=10) && (r<5 || !!st.p6.finalOK);
+  if (d.final) return FINAL_ROUNDS[r].fields.every(f=>enough(st.f[f[0]],10)) && (r<5 || !!st.p6.finalOK);
   switch(r){
-    case 0: return st.p1.choice!=null && len(st.p1.reason)>=8;
+    case 0: return st.p1.choice!=null && enough(st.p1.reason,8);
     case 1: return !!st.p2.chainOK;
-    case 2: return len(st.p3.result)>=8 && len(st.p3.gap)>=8;
+    case 2: return enough(st.p3.result,8) && enough(st.p3.gap,8);
     case 3: return levels(id).L2;
-    case 4: return len(st.p5.stuck)>=4 && len(st.p5.analogy)>=8 && len(st.p5.limit)>=4;
+    case 4: return enough(st.p5.stuck,4) && enough(st.p5.analogy,8) && enough(st.p5.limit,4);
     case 5: return levels(id).L1 && levels(id).L4;
   }
 }
@@ -586,7 +590,7 @@ function roundView(id, r){
       <div class="h">項目</div>${[0,1,2,3].map(n=>`<div class="h">${n} 点</div>`).join("")}
       ${RUBRIC.map((row,i)=>`<div class="lab">${row[0]}</div>${row[1].map((t,n)=>`<button class="${sc[i]===n?"on":""}" onclick="setScore(${id},${i},${n})">${t}</button>`).join("")}`).join("")}
     </div>
-    <div class="result ${L.L2?"ok":"bad"}" style="margin-top:12px">平均：<b>${L.avg>=0?L.avg.toFixed(1):"未評価の項目あり"}</b>（2 点以上、かつ説明 60 字以上が必要）。${L.L2?"レベル 2 合格。":"0 点・1 点の項目が、P5 で埋めるべき穴です。"}</div>`;
+    <div class="result ${L.L2?"ok":"bad"}" style="margin-top:12px">平均：<b>${L.avg>=0?L.avg.toFixed(1):"未評価の項目あり"}</b>（2 点以上、かつ説明 90 字以上が必要）。${L.L2?"レベル 2 合格。":"0 点・1 点の項目が、P5 で埋めるべき穴です。"}</div>`;
   }
   if (r===4){
     const low = RUBRIC.map((x,i)=>[x[0],st.p4.scores[i]]).filter(x=>x[1]>=0&&x[1]<2).map(x=>x[0]);
@@ -606,9 +610,9 @@ function roundView(id, r){
   if (r===5) return bossRound(id);
 }
 
-function lockP1(id){ const st=I(id); if(st.p1.choice==null) return toast("まず答えを 1 つ選んでください"); if(len(st.p1.reason)<8) return toast("理由を少なくとも一文書いてください（8 文字以上）"); st.p1.locked=true; award(st,"p1",1); save(); render(); }
+function lockP1(id){ const st=I(id); if(st.p1.choice==null) return toast("まず答えを 1 つ選んでください"); if(!enough(st.p1.reason,8)) return toast("理由を少なくとも一文書いてください（12 文字以上）"); st.p1.locked=true; award(st,"p1",1); save(); render(); }
 function pickChain(id,i){ const st=I(id), d=isl(id); st.p2.order=(st.p2.order||[]).concat(i); if(st.p2.order.length===d.chain.length){ st.p2.chainOK = st.p2.order.every((v,k)=>v===k); if(st.p2.chainOK) award(st,"p2",1); } save(); render(); }
-function submitP3(id){ const st=I(id); if(len(st.p3.result)<8||len(st.p3.gap)<8) return toast("「実際の結果」と「ずれの原因」の両方を書いてください（各 8 文字以上）"); award(st,"p3",2); save(); checkPass(id); render(); toast("実験記録を保存しました。レベル 3 の判定を更新しました"); }
+function submitP3(id){ const st=I(id); if(!enough(st.p3.result,8)||!enough(st.p3.gap,8)) return toast("「実際の結果」と「ずれの原因」の両方を書いてください（各 12 文字以上）"); award(st,"p3",2); save(); checkPass(id); render(); toast("実験記録を保存しました。レベル 3 の判定を更新しました"); }
 function setScore(id,i,n){ I(id).p4.scores[i]=n; save(); if(levels(id).L2) award(I(id),"p4",2); render(); }
 function submitP5(id){ if(!roundDone(id,4)) return toast("3 つとも書いてください：つまずいた点、たとえ、当てはまらない点"); award(I(id),"p5",1); save(); toast("たとえカードを呪文の書に追加しました"); render(); }
 
@@ -653,7 +657,7 @@ function bossRound(id){
   `}
   ${st.p6.bossOK? `<div class="swan" style="margin-top:16px"><div class="tag">ブラックスワン・イベント</div><p style="margin:.4em 0">${esc(d.swan)}</p>
     <textarea style="background:#2c3d49;color:#efe9d8;border-color:#44596a" oninput="I(${id}).swan=this.value;save()" placeholder="あなたの推論を書いてください（任意。書くと予測ポイント +1）">${esc(st.swan)}</textarea>
-    <div class="row" style="margin-top:8px"><button class="btn small" style="background:#f0c96a;color:#22313c" onclick="if(len(I(${id}).swan)>=10){award(I(${id}),'swan',1);save();render()}else toast('もう少し考えを書いてみましょう')">提出</button></div></div>`:""}
+    <div class="row" style="margin-top:8px"><button class="btn small" style="background:#f0c96a;color:#22313c" onclick="if(enough(I(${id}).swan,10)){award(I(${id}),'swan',1);save();render()}else toast('もう少し考えを書いてみましょう')">提出</button></div></div>`:""}
   <h3>レベル 1〜4 セルフチェック</h3>
   <div class="levels">${[["レベル 1 再現",L.L1,"P6 の確認テストへ"],["レベル 2 説明",L.L2,"P4 の説明と評価へ"],["レベル 3 予測",L.L3,"P1 で理由、P3 でずれを書く"],["レベル 4 診断",L.L4,"ボスに挑む"]].map(x=>`<div class="lv ${x[1]?"ok":""}"><b>${x[0]} ${x[1]?"✓":"✗"}</b>${x[1]?"達成":x[2]}</div>`).join("")}</div>
   ${passed(id)?`<div class="result ok">4 つのレベルをすべて達成。この島はクリアです。</div>`:`<div class="muted">レベル 3 に届いていない島は、どれだけ点数が高くても合格になりません。</div>`}`;

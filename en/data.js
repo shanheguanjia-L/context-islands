@@ -776,11 +776,11 @@ window.TRUNK = {
     resLabel: "What actually happened", resPh: "What actually happened was…",
     gapLabel: "The gap: what was different from your prediction? Why do you think so?", gapPh: "I thought… but actually…",
     reveal: "What happened", whenNot: "When you might not see this",
-    needPred: "Write at least one sentence of prediction (8 characters or more)",
+    needPred: "Write at least one sentence of prediction (24 characters or more)",
     // T3
     t3Title: "One sentence, clear enough for a 12-year-old",
     t3Why: "All three breaks you just did can be explained with the same sentence. Read it first, then say it again in your own words, and check it against what you saw with your own eyes today.",
-    t3Mine: "My 12-year-old version (at least 60 characters; no unexplained jargon)",
+    t3Mine: "My 12-year-old version (at least 180 characters; no unexplained jargon)",
     t3Check: "My version covers these points (each one must match a result I saw today):",
     t3Ask: "Copy the \"12-year-old asks follow-ups\" prompt",
     t3Feynman: "What actually is the model? Why does \"what's on the table\" matter more than \"how you ask\"?",
@@ -795,7 +795,7 @@ window.TRUNK = {
     caseN: "Case",
     evLabel: "Evidence: which sentence made you decide this?",
     submit: "Submit diagnosis", redraw: "Draw two new cases and try again",
-    needAll: "Choose a layer for both cases and write evidence for each (8 characters or more)",
+    needAll: "Choose a layer for both cases and write evidence for each (24 characters or more)",
     passOK: "Both right. You can see the table now: from here on, whenever something breaks, draw the tool card for that layer.",
     passBad: "Not yet. Read the explanation below, go back to T4 and compare with \"How to test that it's this layer\", then draw two new cases.",
     // Cleared

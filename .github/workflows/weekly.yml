@@ -18,7 +18,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
-      - run: pip install opencc-python-reimplemented
+      - run: pip install OpenCC==1.4.2   # 跟產生簡體版時用的同一版，轉出來才會一模一樣
       - run: python3 tools/check.py --json > check.json || true
       - run: python3 tools/board.py check.json > board.md
       - name: 更新演化看板

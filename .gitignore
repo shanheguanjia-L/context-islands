@@ -5,3 +5,6 @@
 .env
 __pycache__/
 .venv/
+
+# 演化引擎的帳本與報表（只在本機）
+.evolve/

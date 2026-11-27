@@ -264,7 +264,7 @@ PAIRS = [
     ('<p class="muted">本課程以 <a href="https://creativecommons.org/licenses/by-sa/4.0/deed.zh-hant" target="_blank" rel="noopener">CC BY-SA 4.0</a> 授權：可自由分享、改編與商用，須標示出處，改編作品也須以相同授權釋出。</p>',
      '<p class="muted">This course is licensed under <a href="https://creativecommons.org/licenses/by-sa/4.0/" target="_blank" rel="noopener">CC BY-SA 4.0</a>: you may share, adapt and use it commercially, as long as you give credit and release adaptations under the same license.</p>'),
     # 咒語書
-    ('<h3>第 12 島・王冠島 ${', '<h3>Island 12 · Crown Island ${'),
+    ('<h3>第 ${d.id} 島・${esc(d.name)} ${passed(d.id)', '<h3>Island ${d.id} · ${esc(d.name)} ${passed(d.id)'),
     ("'<span class=\"empty\">（未寫）</span>'", "'<span class=\"empty\">(not written)</span>'"),
     ('<h3>第 ${d.id} 島・${esc(d.name)}　<span class="pill ${passed(d.id)?"gold":""}">${passed(d.id)?esc(d.badge):"未通關"}</span></h3>', '<h3>Island ${d.id} · ${esc(d.name)} <span class="pill ${passed(d.id)?"gold":""}">${passed(d.id)?esc(d.badge):"Not cleared"}</span></h3>'),
     ('${it("我的預測與理由", st.p1.reason)}${it("實驗：結果", st.p3.result)}${it("實驗：落差原因", st.p3.gap)}', '${it("My prediction and reasoning", st.p1.reason)}${it("Lab: result", st.p3.result)}${it("Lab: why the gap", st.p3.gap)}'),
@@ -321,6 +321,8 @@ PAIRS = [
     ('href="icons/', 'href="../icons/'),
     # ---- iPhone「加入主畫面」的短名稱（沒有這行會拿整串 <title>，被截斷）----
     ('<meta name="apple-mobile-web-app-title" content="脈絡群島">', '<meta name="apple-mobile-web-app-title" content="Context Islands">'),
+    # ---- 演化紀錄 meta.js 四語共用，放在根目錄 ----
+    ('<script src="meta.js">', '<script src="../meta.js">'),
 ]
 
 CJK = re.compile(r"[　-〿一-鿿＀-￯]")

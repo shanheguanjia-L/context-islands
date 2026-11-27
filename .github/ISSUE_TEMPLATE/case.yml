@@ -1,0 +1,35 @@
+name: 投稿 Boss 案例 / Contribute a Boss case
+description: 一個真實會發生的 AI 失敗，附診斷和「為什麼」/ A real-world AI failure with a diagnosis and the "why"
+labels: ["投稿"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        本課程只收說得出「為什麼會這樣、何時會失效」的案例，不收只教招式的模板。請用虛構或去識別化的資料。
+        We only accept cases that explain why it happens and when it stops being true. Use fictional or anonymized data.
+  - type: input
+    id: island
+    attributes:
+      label: 哪座島 / Which island
+      description: 例如「第 6 島 視窗沙漠」/ e.g. "Island 6 Window Desert"
+    validations:
+      required: true
+  - type: textarea
+    id: case
+    attributes:
+      label: 案例 / The case
+      description: 情境寫成一段題目 / Write the situation as a question
+    validations:
+      required: true
+  - type: textarea
+    id: options
+    attributes:
+      label: 選項（一行一個，正確的標 ✓）/ Options (one per line, mark the right one with ✓)
+    validations:
+      required: true
+  - type: textarea
+    id: why
+    attributes:
+      label: 為什麼（為什麼會發生、什麼時候這個診斷不成立）/ Why (why it happens, and when this diagnosis stops holding)
+    validations:
+      required: true

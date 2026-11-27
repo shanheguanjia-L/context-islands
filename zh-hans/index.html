@@ -71,6 +71,8 @@ label.f{display:block;font-weight:600;margin:12px 0 4px;font-size:15px}
 
 /* 岛内 */
 .crumb{font-size:14px;color:var(--ink2);margin-bottom:6px}
+.pill.new{background:var(--coral);color:#fff;border-color:var(--coral)}
+.report{margin-top:14px}
 .crumb a{cursor:pointer}
 .islhead{display:flex;justify-content:space-between;align-items:flex-start;gap:14px;flex-wrap:wrap}
 .tabs{display:flex;gap:6px;flex-wrap:wrap;margin:16px 0 6px;border-bottom:1px solid var(--line);padding-bottom:8px}
@@ -154,7 +156,7 @@ dl.ly dd{margin:0}
     <div class="sub">提示词工程与上下文工程：从零到内化</div>
   </div>
   <div class="stats" aria-live="polite">
-    <span>徽章 <b id="sBadge">0</b>/12</span>
+    <span>徽章 <b id="sBadge">0</b>/<span id="sBadgeMax">12</span></span>
     <span>预测点 <b id="sPts">0</b></span>
     <span>番茄钟 <b id="sPomo">0</b></span>
   </div>
@@ -189,6 +191,7 @@ dl.ly dd{margin:0}
 <div class="toast" id="toast"></div>
 <dialog id="dlg"></dialog>
 
+<script src="../meta.js"></script>
 <script src="data.js"></script>
 <script>
 "use strict";
@@ -242,6 +245,20 @@ const ord = (n, seed) => shuffleIdx(n, seed*131+17);
 const t = (s, o) => String(s).replace(/\{(\w+)\}/g, (m,k)=> o && o[k]!=null ? o[k] : m);
 ISLANDS.forEach(d=>Object.assign(d, (window.CARD_EXTRA||{})[d.id]||{}));
 
+/* ---------- evolution: "updated" marker and report link (see docs/ in the repo) ---------- */
+const VER = window.CONTENT_VERSION || "", FRESH = window.FRESHNESS || {};
+if (!S.seen) { S.seen = {}; S.seenBase = VER; save(); }
+function isNew(k){ const f=FRESH[k]; return !!(f && f.changed > ((S.seen||{})[k] || S.seenBase || VER)); }
+function markSeen(k){ if (isNew(k)) { S.seen = S.seen || {}; S.seen[k] = VER; save(); } }
+function newPill(k){ return isNew(k) ? `<span class="pill new">${esc(UI0.newPill)}</span>` : ""; }
+function reportUrl(where){
+  const q = new URLSearchParams({ template: "report.yml", title: t(UI0.reportTitle, {where}), where, lang: document.documentElement.lang, version: VER });
+  return `https://github.com/${window.REPO}/issues/new?${q}`;
+}
+function reportRow(where){
+  return window.REPO ? `<p class="muted report"><a href="${esc(reportUrl(where))}" target="_blank" rel="noopener">${esc(UI0.reportLink)}</a>${esc(UI0.dot)}${esc(UI0.reportHint)}</p>` : "";
+}
+
 /* ---------- 第 0 周：树干（先量、先弄坏，再给一句话和四层） ---------- */
 const TU = TRUNK.ui;
 function TR(){
@@ -285,7 +302,7 @@ function trunkCard(){
     <span class="nm">${esc(TRUNK.name)}</span>
     <span class="bs">${esc(TU.cardBoss)}</span>
     <span class="tp">${esc(TU.cardTopic)}</span>
-    <span class="foot">${ok?`<span class="pill gold">${esc(TU.cleared)}</span>`: st?`<span class="pill warn">${n}/5 ${esc(TU.cardRounds)}</span>`:`<span class="pill warn">${esc(TU.cardStart)}</span>`}</span>
+    <span class="foot">${ok?`<span class="pill gold">${esc(TU.cleared)}</span>`: st?`<span class="pill warn">${n}/5 ${esc(TU.cardRounds)}</span>`:`<span class="pill warn">${esc(TU.cardStart)}</span>`}${newPill("trunk")}</span>
   </button>`;
 }
 function trSet(path, v){ let o=TR(); const k=path.split("."); k.slice(0,-1).forEach(x=>o=o[x]); o[k[k.length-1]]=v; save(); trRefresh(); }
@@ -396,7 +413,7 @@ function trunkView(){
     <button class="btn ghost" ${r===0?"disabled":""} onclick="TR().round=${r-1};save();render();window.scrollTo(0,0)">${esc(TU.prev)}</button>
     <button class="btn" ${r===4?"disabled":""} onclick="TR().round=${r+1};save();render();window.scrollTo(0,0)">${esc(TU.next)}</button>
   </div>
-  <p class="muted">${esc(TU.skipNote)}</p>`;
+  <p class="muted">${esc(TU.skipNote)}</p>${reportRow(t(UI0.whereTrunk, {round:TU.rounds[r][0]+" "+TU.rounds[r][1]}))}`;
 }
 function trunkBook(md){
   if (!S.trunk) return "";
@@ -470,11 +487,12 @@ function render(){
   else if (view.name==="log") app.innerHTML = logView();
   else app.innerHTML = mapView();
   stats();
-  if (view.name==="island"){ bindPomoCtx(); checkPass(view.id); }
+  if (view.name==="island"){ bindPomoCtx(); checkPass(view.id); markSeen(view.id); }
+  if (view.name==="trunk") markSeen("trunk");
   if (view.name==="trunk") trunkCheck();
 }
 function stats(){
-  $("#sBadge").textContent = ISLANDS.filter(d=>passed(d.id)).length;
+  $("#sBadge").textContent = ISLANDS.filter(d=>passed(d.id)).length; $("#sBadgeMax").textContent = ISLANDS.length;
   $("#sPts").textContent = S.pts; $("#sPomo").textContent = S.pomos;
 }
 
@@ -487,7 +505,8 @@ function mapView(){
   ${dims.length? `<div class="card" style="border-color:var(--warn)"><b>知识城堡风化中：</b>${dims.map(d=>esc(d.name)).join("、")} 超过 7 天没复习。<button class="btn small coral" onclick="repair(${dims[0].id})">修城：答一题</button></div>`:""}
   <div class="legend"><span class="pill">未解锁</span><span class="pill warn">进行中</span><span class="pill gold">已通关</span><span class="pill">变灰＝需要复习</span>
     <label style="margin-left:auto"><input type="checkbox" ${S.free?"checked":""} onchange="S.free=this.checked;save();render()"> 自由模式（全部解锁，适合讲师备课）</label></div>
-  <div class="map">${trunkCard()}${ISLANDS.map(islCard).join("")}</div>`;
+  <div class="map">${trunkCard()}${ISLANDS.map(islCard).join("")}</div>
+  <p class="muted report">${esc(t(UI0.versionLine, {v:VER}))}${esc(UI0.dot)}<a href="https://github.com/${esc(window.REPO)}/blob/main/${esc(UI0.changelogFile)}" target="_blank" rel="noopener">${esc(UI0.changelog)}</a>${esc(UI0.dot)}<a href="https://github.com/${esc(window.REPO)}/blob/main/docs/${esc(UI0.howGrowFile)}" target="_blank" rel="noopener">${esc(UI0.howGrow)}</a></p>`;
 }
 function islCard(d){
     const st=S.isl[d.id], ok=passed(d.id), un=unlocked(d.id), dim=isDim(d.id);
@@ -500,7 +519,7 @@ function islCard(d){
       <span class="tp">${esc(d.topic)}</span>
       ${d.symptom&&!d.final?`<span class="tp"><i>${esc(t(UI0.symptomLine,{s:d.symptom}))}</i></span>`:""}
       <span class="foot">${ok?`<span class="pill gold">已通关</span>`: un? (st?`<span class="pill warn">${doneN}/6 回合</span>`:`<span class="pill">可出发</span>`) : `<span class="pill">未解锁</span>`}
-      ${dim?`<span class="pill warn">需修城</span>`:""}</span>
+      ${dim?`<span class="pill warn">需修城</span>`:""}${newPill(d.id)}</span>
     </button>`;
 }
 
@@ -530,7 +549,7 @@ function islandView(id){
     <button class="btn ghost" ${r===0?"disabled":""} onclick="setRound(${id},${r-1})">← 上一回合</button>
     <button class="btn ghost" onclick="pomoFor(${id},${r})">用番茄钟专注这一回合</button>
     <button class="btn" ${r===5?"disabled":""} onclick="setRound(${id},${r+1})">下一回合 →</button>
-  </div>`;
+  </div>${reportRow(t(UI0.whereIsland, {n:d.id, name:d.name, round:(d.final?FINAL_ROUNDS[r].title:ROUNDS[r][0]+" "+ROUNDS[r][1])}))}`;
 }
 function setRound(id,r){ I(id).round=r; save(); render(); window.scrollTo(0,0); }
 function head(n, title, why){ return `<div class="roundhead"><span class="rn">${n}</span><h3 style="margin:.2em 0">${title}</h3></div>${why?`<div class="why">${why}</div>`:""}`; }
@@ -757,7 +776,7 @@ function guideView(){
 /* ---------- 咒语书 ---------- */
 function bookView(){
   const rows = ISLANDS.filter(d=>S.isl[d.id]).map(d=>{ const st=I(d.id);
-    if (d.final) return `<h3>第 12 岛・王冠岛 ${passed(d.id)?`<span class="pill gold">${esc(d.badge)}</span>`:""}</h3>${FINAL_ROUNDS.map(f=>f.fields.map(x=>`<div class="q">${esc(x[1])}</div><div class="a">${esc(st.f[x[0]])||'<span class="empty">（未写）</span>'}</div>`).join("")).join("")}`;
+    if (d.final) return `<h3>第 ${d.id} 岛・${esc(d.name)} ${passed(d.id)?`<span class="pill gold">${esc(d.badge)}</span>`:""}</h3>${FINAL_ROUNDS.map(f=>f.fields.map(x=>`<div class="q">${esc(x[1])}</div><div class="a">${esc(st.f[x[0]])||'<span class="empty">（未写）</span>'}</div>`).join("")).join("")}`;
     const it=(q,a)=>`<div class="q">${q}</div><div class="a">${a&&a.trim()?esc(a):'<span class="empty">（未写）</span>'}</div>`;
     return `<h3>第 ${d.id} 岛・${esc(d.name)}　<span class="pill ${passed(d.id)?"gold":""}">${passed(d.id)?esc(d.badge):"未通关"}</span></h3>
       ${it("我的预测与理由", st.p1.reason)}${it("实验：结果", st.p3.result)}${it("实验：落差原因", st.p3.gap)}

@@ -1,0 +1,48 @@
+name: 回報這題 / Report this
+description: 過時了、看不懂、答案有錯、翻譯問題 / Outdated, confusing, wrong answer, translation
+labels: ["回報"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        謝謝回報。請不要貼上真實的公司資料或個人資料。
+        Thanks! Please don't paste real company or personal data.
+  - type: dropdown
+    id: kind
+    attributes:
+      label: 哪一種問題 / Kind
+      options:
+        - 過時了（工具或模型已經變了）/ Outdated
+        - 看不懂、卡住了 / Confusing or stuck
+        - 答案或說法有錯 / Wrong answer or claim
+        - 翻譯問題 / Translation
+        - 其他 / Other
+    validations:
+      required: true
+  - type: input
+    id: where
+    attributes:
+      label: 在哪裡 / Where
+      description: 從課程頁面按「回報這題」會自動帶入 / Filled in automatically from the course page
+    validations:
+      required: true
+  - type: textarea
+    id: what
+    attributes:
+      label: 發生什麼事 / What happened
+      description: 你預期什麼、實際看到什麼；過時的話，現在的工具是怎樣 / What you expected vs. what you saw; if outdated, how the tools work now
+    validations:
+      required: true
+  - type: textarea
+    id: why
+    attributes:
+      label: 你覺得為什麼 / Why do you think so
+      description: 有證據最好（你跑的提示詞、看到的結果、官方文件連結）/ Evidence helps most (prompt you ran, output, docs link)
+  - type: input
+    id: lang
+    attributes:
+      label: 語言 / Language
+  - type: input
+    id: version
+    attributes:
+      label: 內容版本 / Content version

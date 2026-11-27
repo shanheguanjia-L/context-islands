@@ -229,7 +229,7 @@ JA = [
     '<div class="card">実験には必ず架空のデータか、個人を特定できないよう加工したデータを使ってください。会社の機密や顧客の個人情報を AI ツールに貼り付けないでください。このページが、あなたの書いた内容をネットワークに送信することはありません。</div>',
     '<p class="muted">このコースは <a href="https://creativecommons.org/licenses/by-sa/4.0/deed.ja" target="_blank" rel="noopener">CC BY-SA 4.0</a> ライセンスで公開しています。出典を表示し、改変した作品も同じライセンスで公開する限り、自由に共有・改変・商用利用できます。</p>',
     # 211–225 呪文の書
-    '<h3>第 12 島・王冠の島 ${',
+    '<h3>第 ${d.id} 島・${esc(d.name)} ${passed(d.id)',
     "'<span class=\"empty\">（未記入）</span>'",
     '<h3>第 ${d.id} 島・${esc(d.name)}　<span class="pill ${passed(d.id)?"gold":""}">${passed(d.id)?esc(d.badge):"未クリア"}</span></h3>',
     '${it("わたしの予測と理由", st.p1.reason)}${it("実験：結果", st.p3.result)}${it("実験：ずれの原因", st.p3.gap)}',
@@ -284,6 +284,8 @@ JA = [
     None,
     # iPhone「加入主畫面」的短名稱
     '<meta name="apple-mobile-web-app-title" content="コンテキスト群島">',
+    # 演化紀錄 meta.js 路徑（沿用英文）
+    None,
 ]
 
 OUT = build_en.ROOT / "ja"

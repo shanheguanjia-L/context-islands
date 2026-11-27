@@ -688,7 +688,18 @@ window.UI0 = {
   updTitle: "2026 年 11 月补充",
   updNote: "以下是写这段时常见的做法；各家工具的名称和细节不同，也还会再变。记原理，不要记按钮。",
   askTpl: "你是一位 12 岁的学生，对 AI 完全不懂。我会跟你解释：“{q}”\n请你只用 12 岁孩子的程度，追问我 2 个问题，专挑我讲得模糊、用了术语没解释、或因果跳步的地方。先不要评价，只问问题。\n\n我的讲解：\n{a}",
-  askEmpty: "（粘贴你的讲解）"
+  askEmpty: "（粘贴你的讲解）",
+  newPill: "有更新",
+  reportLink: "回报这题",
+  reportHint: "会开 GitHub 的回报页面，只带岛号、回合和语言，不会带你写的内容；要你自己看过、按送出才会送出。过时、看不懂、答案有错、想投稿案例都可以。",
+  reportTitle: "回报：{where}",
+  whereIsland: "第 {n} 岛 {name}・{round}",
+  whereTrunk: "第 0 周 树干・{round}",
+  versionLine: "内容版本 {v}",
+  changelog: "更新纪录",
+  changelogFile: "更新紀錄.md",
+  howGrow: "这门课怎么长大",
+  howGrowFile: "演化機制.md"
 };
 
 window.CARD_EXTRA = {

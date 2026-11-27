@@ -689,7 +689,18 @@ window.UI0 = {
   updTitle: "November 2026 additions",
   updNote: "These are common practices at the time of writing; names and details differ between tools and will keep changing. Remember the principle, not the button.",
   askTpl: "You are a 12-year-old student who knows nothing about AI. I'm going to explain to you: \"{q}\"\nAt a 12-year-old's level only, ask me 2 follow-up questions, aimed at the places where I was vague, used jargon without explaining it, or skipped a step in the cause and effect. Don't judge yet — just ask questions.\n\nMy explanation:\n{a}",
-  askEmpty: "(paste your explanation)"
+  askEmpty: "(paste your explanation)",
+  newPill: "Updated",
+  reportLink: "Report this",
+  reportHint: "Opens a GitHub issue page with only the island, round and language filled in — nothing you wrote is included, and nothing is sent until you review it and press Submit. Outdated, confusing, wrong answer, or a case to contribute: all welcome.",
+  reportTitle: "Report: {where}",
+  whereIsland: "Island {n} {name} · {round}",
+  whereTrunk: "Week 0 Trunk · {round}",
+  versionLine: "Content version {v}",
+  changelog: "Changelog",
+  changelogFile: "更新紀錄.md",
+  howGrow: "How this course grows",
+  howGrowFile: "演化機制.md"
 };
 
 window.CARD_EXTRA = {

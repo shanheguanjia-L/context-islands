@@ -22,6 +22,18 @@ You clear an island by reaching "internalization level 3" — predicting the res
 
 Instructors can tick "Free mode" on the sea chart to unlock every island.
 
+## Week 0: The Trunk (start here)
+
+Before learning any technique, walk the five rounds of the Trunk:
+
+1. **T1 Scoreboard**: ask the AI 10 things you already know the answer to, and mark only three boxes — right, wrong, fluent but wrong. No changing the prompt.
+2. **T2 Break the table**: break it on purpose three times (the same question in five new chats; with and without the facts written in; a rule buried in the middle of a long text), writing a prediction first each time.
+3. **T3 One sentence**: explain "the model can only see the papers on the table" so a 12-year-old gets it, matched against what you just saw.
+4. **T4 Four layers**: the one sentence, everything on the table this turn, who resets the table each turn, and what counts as done — when each layer counts as broken and how to test for it.
+5. **T5 Graduation**: two failure cases you haven't been taught; name the layer that broke and the evidence. Both must be right.
+
+After the Trunk, Islands 1–12 all open up as **tool cards you draw when something breaks** (each card on the sea chart shows its symptom); you can also start straight from Island 1 and go in order. Islands 2, 6, 8, 9, 10 and 11 gained "November 2026 additions".
+
 ## The 12 islands
 
 | Week | Island | Failure monster | Principle |

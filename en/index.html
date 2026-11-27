@@ -132,6 +132,16 @@ dialog::backdrop{background:rgba(18,50,71,.4)}
 .book .q{font-weight:700;font-size:14px;margin-top:8px}
 .book .a{white-space:pre-wrap;font-size:15px}
 .empty{color:#9a9384;font-style:italic}
+/* week 0 */
+.isl.trunk{border:2px solid var(--coral)}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden;white-space:nowrap}
+.seg button{border:0;background:#fff;padding:4px 10px;font-size:13px;color:var(--ink2)}
+.seg button+button{border-left:1px solid var(--line)}
+.seg button.on{background:var(--sea);color:#fff}
+dl.ly{margin:8px 0 0;font-size:14.5px}
+dl.ly dt{font-weight:700;color:var(--ink2);font-size:12.5px;margin-top:8px}
+dl.ly dd{margin:0}
+.card .upd{border-left:3px solid var(--gold);padding-left:10px}
 @media print{header.top,.pomo,.toast,.row .btn{display:none!important}body{background:#fff}main{padding:0}.card{border:0}}
 </style>
 </head>
@@ -147,6 +157,7 @@ dialog::backdrop{background:rgba(18,50,71,.4)}
     <span>Pomodoros <b id="sPomo">0</b></span>
   </div>
   <nav>
+    <button data-v="trunk" onclick="go('trunk')" id="navTrunk"></button>
     <button data-v="map" onclick="go('map')">Sea chart</button>
     <button data-v="guide" onclick="go('guide')">How to play</button>
     <button data-v="book" onclick="go('book')">Spellbook</button>
@@ -223,6 +234,175 @@ function copy(text){
 function shuffleIdx(n, seed){ const a=[...Array(n).keys()]; let x=seed||Date.now(); for(let i=n-1;i>0;i--){ x=(x*9301+49297)%233280; const j=Math.floor(x/233280*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
 function isl(id){ return ISLANDS.find(x=>x.id===id); }
 const ord = (n, seed) => shuffleIdx(n, seed*131+17);
+const t = (s, o) => String(s).replace(/\{(\w+)\}/g, (m,k)=> o && o[k]!=null ? o[k] : m);
+ISLANDS.forEach(d=>Object.assign(d, (window.CARD_EXTRA||{})[d.id]||{}));
+
+/* ---------- week 0: the trunk (measure and break first, then one sentence and four layers) ---------- */
+const TU = TRUNK.ui;
+function TR(){
+  if (!S.trunk) S.trunk = {round:0, t1:{custom:null, marks:[], pred:"", reflect:""}, t2:[{},{},{}], t3:{text:"", checks:[], follow:""}, t4:{mine:["","","",""]}, t5:{draw:null, ans:[], ev:[], graded:false, ok:false}};
+  return S.trunk;
+}
+function t1Items(){ const c=TR().t1.custom; return c || TRUNK.scoreboard.items; }
+function trunkLevels(){
+  const T=TR(), b=T.t2, marks=T.t1.marks;
+  const scored = t1Items().every((x,i)=>marks[i]!=null);
+  return {
+    L1: len(T.t1.pred)>=8 && b.every(x=>x.locked && len(x.pred)>=8),
+    L2: scored && b.every(x=>len(x.res)>=8 && len(x.gap)>=8),
+    L3: len(T.t3.text)>=60 && TRUNK.sentenceChecks.every((c,i)=>T.t3.checks[i]),
+    L4: !!T.t5.ok
+  };
+}
+function trunkPassed(){ return !!(S.trunk && S.trunk.passedAt); }
+function trunkRoundDone(r){
+  const T=TR(), L=trunkLevels();
+  switch(r){
+    case 0: return len(T.t1.pred)>=8 && t1Items().every((x,i)=>T.t1.marks[i]!=null) && len(T.t1.reflect)>=8;
+    case 1: return T.t2.every(x=>x.locked && len(x.res)>=8 && len(x.gap)>=8);
+    case 2: return L.L3;
+    case 3: return T.t4.mine.every(x=>len(x)>=8);
+    case 4: return L.L4;
+  }
+}
+function trunkCheck(){
+  const T=TR(), L=trunkLevels();
+  if (!T.passedAt && L.L1 && L.L2 && L.L3 && L.L4){
+    T.passedAt = T.lastReview = Date.now(); save();
+    showDlg(`<h2>${esc(TU.passTitle)}</h2><p>${esc(t(TU.passBody,{badge:TRUNK.badge}))}</p><div class="row"><button class="btn" onclick="closeDlg();go('map')">${esc(TU.toMap)}</button><button class="btn ghost" onclick="closeDlg()">${esc(TU.stay)}</button></div>`);
+  }
+}
+function trunkCard(){
+  const st=S.trunk, ok=trunkPassed(), n = st ? [0,1,2,3,4].filter(trunkRoundDone).length : 0;
+  return `<button class="isl trunk ${ok?"passed":""}" onclick="go('trunk')" aria-label="${esc(TU.heading)}">
+    ${ok?`<div class="seal">${esc(TRUNK.badge)}</div>`:""}
+    <span class="wk">${esc(TU.week)}${esc(UI0.dot)}${esc(TRUNK.stage)}</span>
+    <span class="nm">${esc(TRUNK.name)}</span>
+    <span class="bs">${esc(TU.cardBoss)}</span>
+    <span class="tp">${esc(TU.cardTopic)}</span>
+    <span class="foot">${ok?`<span class="pill gold">${esc(TU.cleared)}</span>`: st?`<span class="pill warn">${n}/5 ${esc(TU.cardRounds)}</span>`:`<span class="pill warn">${esc(TU.cardStart)}</span>`}</span>
+  </button>`;
+}
+function trSet(path, v){ let o=TR(); const k=path.split("."); k.slice(0,-1).forEach(x=>o=o[x]); o[k[k.length-1]]=v; save(); trRefresh(); }
+function trRefresh(){
+  const L=trunkLevels(), el=$("#trLv"); if (el) el.innerHTML=trunkLvHtml(L);
+  TR().t2.forEach((b,k)=>{ const r=$("#trRv"+k); if (r) r.innerHTML=trReveal(k); });
+  const tl=$("#trTally"); if (tl) tl.textContent=trTally();
+  trunkCheck();
+}
+function trunkLvHtml(L){ return TU.levels.map((x,i)=>{ const ok=L["L"+(i+1)]; return `<div class="lv ${ok?"ok":""}"><b>${esc(x[0])} ${ok?"✓":""}</b>${esc(x[1])}</div>`; }).join(""); }
+function trTally(){ const m=TR().t1.marks, it=t1Items(); const c=k=>it.filter((x,i)=>m[i]===k).length; return t(TU.tally,{r:c(0),w:c(1),s:c(2),n:it.filter((x,i)=>m[i]!=null).length}); }
+function trReveal(k){
+  const b=TR().t2[k], d=TRUNK.breaks[k];
+  if (!(b.locked && len(b.res)>=8 && len(b.gap)>=8)) return "";
+  return `<div class="result ok"><b>${esc(TU.reveal)}</b><br>${esc(d.reveal)}</div><div class="why"><b>${esc(TU.whenNot)}</b>${esc(UI0.colon||"")}${esc(d.whenNot)}</div>`;
+}
+function trPrompt(p, n){ return `<div class="muted">${esc(TU.promptN)} ${n}</div><div class="prompt"><button class="btn small ghost cp" style="background:#f3efe2" onclick="copy(${js(p)})">${esc(TU.copy)}</button>${esc(p)}</div>`; }
+function trLock(k){ const b=TR().t2[k]; if (len(b.pred)<8) return toast(TU.needPred); b.locked=true; award(trAw(),"t2"+k,1); save(); render(); }
+function trAw(){ const T=TR(); T.awarded=T.awarded||{}; return T; }
+function trMark(i,k){ TR().t1.marks[i]=k; save(); render(); }
+function trOwn(on){ const T=TR(); T.t1.custom = on ? Array.from({length:10},()=>({q:"",a:""})) : null; T.t1.marks=[]; save(); render(); }
+function trDraw(){
+  const T=TR(), ex=TRUNK.exam, seed=Date.now();
+  const order=shuffleIdx(ex.length, seed); const a=order[0]; const b=order.find(i=>ex[i].layer!==ex[a].layer);
+  T.t5={draw:[a,b], ans:[], ev:[], graded:false, ok:false}; save();
+}
+function trGrade(){
+  const T=TR(), x=T.t5;
+  if (x.draw.some((c,n)=>x.ans[n]==null || len(x.ev[n])<8)) return toast(TU.needAll);
+  x.graded=true; x.ok = x.draw.every((c,n)=>TRUNK.exam[c].layer===x.ans[n]);
+  if (x.ok) award(trAw(),"t5",5);
+  save(); render(); trunkCheck();
+}
+function trunkView(){
+  const T=TR(), r=T.round, L=trunkLevels();
+  const tabs = TU.rounds.map((x,i)=>`<button class="tab ${i===r?"on":""} ${trunkRoundDone(i)?"done":""}" onclick="TR().round=${i};save();render();window.scrollTo(0,0)">${esc(x[0])} ${esc(x[1])}</button>`).join("");
+  let body="";
+  if (r===0){
+    const it=t1Items(), m=T.t1.marks, own=!!T.t1.custom;
+    body = `${head(TU.rounds[0][0]+" "+TU.rounds[0][1], esc(TU.t1Title), TU.t1Why)}
+    <div class="card muted">${esc(TU.t1Rules)}<br>${esc(TU.t1Own)}</div>
+    <label class="f">${esc(TU.t1Pred)}</label>
+    <textarea oninput="trSet('t1.pred',this.value)" placeholder="${esc(TU.t1PredPh)}">${esc(T.t1.pred)}</textarea>
+    <div class="row" style="margin:12px 0"><button class="btn ghost small" onclick="copy(${js(it.map((x,i)=>(i+1)+". "+x.q).join("\n"))})">${esc(TU.copyAll)}</button>
+      <button class="btn ghost small" onclick="trOwn(${own?0:1})">${esc(own?TU.restore:TU.clearOwn)}</button></div>
+    <div class="card" style="overflow-x:auto"><table class="gold"><tr><th>#</th><th>${esc(TU.colQ)}</th><th>${esc(TU.colA)}</th><th></th></tr>
+    ${it.map((x,i)=>`<tr><td>${i+1}</td>
+      <td>${own?`<input type="text" value="${esc(x.q)}" oninput="TR().t1.custom[${i}].q=this.value;save()">`:esc(x.q)}</td>
+      <td>${own?`<input type="text" value="${esc(x.a)}" oninput="TR().t1.custom[${i}].a=this.value;save()">`:`<span class="muted">${esc(x.a)}</span>`}</td>
+      <td><span class="seg">${[TU.colRight,TU.colWrong,TU.colSmooth].map((s,k)=>`<button class="${m[i]===k?"on":""}" onclick="trMark(${i},${k})">${esc(s)}</button>`).join("")}</span></td></tr>`).join("")}
+    </table><p style="margin-bottom:0"><b id="trTally">${esc(trTally())}</b></p></div>
+    ${!own && it.every((x,i)=>m[i]!=null)?`<div class="why">${esc(TU.t1Note)}</div>`:""}
+    <label class="f">${esc(TU.t1Reflect)}</label>
+    <textarea oninput="trSet('t1.reflect',this.value)" placeholder="${esc(TU.t1ReflectPh)}">${esc(T.t1.reflect)}</textarea>`;
+  }
+  if (r===1){
+    body = `${head(TU.rounds[1][0]+" "+TU.rounds[1][1], esc(TU.t2Title), TU.t2Why)}` + TRUNK.breaks.map((d,k)=>{ const b=T.t2[k];
+      return `<div class="card"><h3 style="margin-top:0">${esc(d.title)}</h3><ol>${d.steps.map(s=>`<li>${esc(s)}</li>`).join("")}</ol>
+      ${d.prompts.map((p,i)=>trPrompt(p,i+1)).join("")}
+      <label class="f">${esc(d.predQ)}</label>
+      <textarea ${b.locked?"readonly":""} oninput="trSet('t2.${k}.pred',this.value)" placeholder="${esc(TU.predPh)}">${esc(b.pred)}</textarea>
+      <div class="row" style="margin-top:8px">${b.locked?`<span class="pill ok">${esc(TU.locked)}</span>`:`<button class="btn" onclick="trLock(${k})">${esc(TU.lockPred)}</button>`}</div>
+      ${b.locked?`<label class="f">${esc(TU.resLabel)}</label><textarea oninput="trSet('t2.${k}.res',this.value)" placeholder="${esc(TU.resPh)}">${esc(b.res)}</textarea>
+      <label class="f">${esc(TU.gapLabel)}</label><textarea oninput="trSet('t2.${k}.gap',this.value)" placeholder="${esc(TU.gapPh)}">${esc(b.gap)}</textarea>`:""}
+      <div id="trRv${k}">${trReveal(k)}</div></div>`; }).join("");
+  }
+  if (r===2){
+    const ask = t(UI0.askTpl,{q:TU.t3Feynman, a:T.t3.text||UI0.askEmpty});
+    body = `${head(TU.rounds[2][0]+" "+TU.rounds[2][1], esc(TU.t3Title), esc(TU.t3Why))}
+    <div class="puzzle">${esc(TRUNK.sentence)}</div>
+    <label class="f">${esc(TU.t3Mine)}</label>
+    <textarea style="min-height:150px" oninput="trSet('t3.text',this.value);document.getElementById('trCnt').textContent=this.value.trim().length">${esc(T.t3.text)}</textarea>
+    <div class="muted"><span id="trCnt">${len(T.t3.text)}</span> / 60</div>
+    <p><b>${esc(TU.t3Check)}</b></p>
+    <div class="opts">${TRUNK.sentenceChecks.map((c,i)=>`<label class="opt"><input type="checkbox" ${T.t3.checks[i]?"checked":""} onchange="TR().t3.checks[${i}]=this.checked;save();trRefresh()"> <span>${esc(c)}</span></label>`).join("")}</div>
+    <div class="row"><button class="btn ghost" onclick="copy(${js(ask)})">${esc(TU.t3Ask)}</button></div>`;
+  }
+  if (r===3){
+    const K=[["what",TU.lyWhat],["broken",TU.lyBroken],["test",TU.lyTest],["why",TU.lyWhy],["fail",TU.lyFail],["cards",TU.lyCards],["origin",TU.lyName]];
+    body = `${head(TU.rounds[3][0]+" "+TU.rounds[3][1], esc(TU.t4Title), TU.t4Why)}` + TRUNK.layers.map((y,k)=>`<div class="card">
+      <span class="pill">${k+1}</span> <b style="font-family:var(--serif);font-size:19px">${esc(y.name)}</b> <span class="muted">${esc(y.tag)}</span>
+      <dl class="ly">${K.map(([f,lab])=>`<dt>${esc(lab)}</dt><dd>${esc(y[f])}</dd>`).join("")}</dl>
+      <label class="f">${esc(TU.lyMine)}</label>
+      <textarea oninput="TR().t4.mine[${k}]=this.value;save()">${esc(T.t4.mine[k])}</textarea></div>`).join("");
+  }
+  if (r===4){
+    if (!T.t5.draw) trDraw();
+    const x=T.t5;
+    body = `${head(TU.rounds[4][0]+" "+TU.rounds[4][1], esc(TU.t5Title), esc(TU.t5Why))}` + x.draw.map((c,n)=>{ const e=TRUNK.exam[c];
+      return `<div class="card"><div class="muted">${esc(TU.caseN)} ${n+1}</div><p><b>${esc(e.text)}</b></p>
+      <div class="opts">${TRUNK.layers.map((y,k)=>{ const cls = x.graded ? (k===e.layer?"right":(x.ans[n]===k?"wrong":"")) : "";
+        return `<label class="opt ${cls}"><input type="radio" name="t5${n}" ${x.ans[n]===k?"checked":""} ${x.graded?"disabled":""} onchange="TR().t5.ans[${n}]=${k};save()"> <span>${k+1}. ${esc(y.name)}</span></label>`; }).join("")}</div>
+      <label class="f">${esc(TU.evLabel)}</label>
+      <textarea ${x.graded?"readonly":""} oninput="TR().t5.ev[${n}]=this.value;save()">${esc(x.ev[n])}</textarea>
+      ${x.graded?`<div class="why">${esc(e.why)}</div>`:""}</div>`; }).join("") +
+      `<div class="row">${x.graded ? (x.ok?`<div class="result ok">${esc(TU.passOK)}</div>`:`<div class="result bad">${esc(TU.passBad)}</div><button class="btn coral" onclick="trDraw();render()">${esc(TU.redraw)}</button>`)
+        : `<button class="btn" onclick="trGrade()">${esc(TU.submit)}</button>`}</div>`;
+  }
+  return `<div class="crumb"><a onclick="go('map')">${esc(TU.back)}</a></div>
+  <div class="islhead"><div><h2>${esc(TU.heading)}</h2>
+    <div class="muted">${esc(TRUNK.topic)}</div><div class="muted">${esc(TRUNK.core)}</div></div>
+    ${trunkPassed()?`<span class="pill gold">${esc(TU.cleared)}</span>`:""}</div>
+  <p class="lead">${esc(TU.sub)}</p>
+  <div class="levels" id="trLv">${trunkLvHtml(L)}</div>
+  <div class="tabs" role="tablist">${tabs}</div>
+  <section>${body}</section>
+  <div class="row" style="justify-content:space-between;margin-top:18px">
+    <button class="btn ghost" ${r===0?"disabled":""} onclick="TR().round=${r-1};save();render();window.scrollTo(0,0)">${esc(TU.prev)}</button>
+    <button class="btn" ${r===4?"disabled":""} onclick="TR().round=${r+1};save();render();window.scrollTo(0,0)">${esc(TU.next)}</button>
+  </div>
+  <p class="muted">${esc(TU.skipNote)}</p>`;
+}
+function trunkBook(md){
+  if (!S.trunk) return "";
+  const T=S.trunk, m=T.t1.marks;
+  const parts=[[TU.bkScore,T.t1.pred],[TU.bkScore2,trTally()],[TU.bkReflect,T.t1.reflect]]
+    .concat(TRUNK.breaks.map((d,k)=>[TU.bkBreak+" "+(k+1),[T.t2[k].pred,T.t2[k].res,T.t2[k].gap].filter(x=>len(x)).join("\n")]))
+    .concat([[TU.bkMine,T.t3.text]]).concat(TRUNK.layers.map((y,k)=>[TU.bkLayer+" "+(k+1)+" "+y.name, T.t4.mine[k]]));
+  if (md) return `## ${TU.heading}${trunkPassed()?" ("+TRUNK.badge+")":""}\n\n` + parts.map(([k,v])=>`### ${k}\n\n${v||UI0.empty}\n\n`).join("");
+  return `<h3>${esc(TU.heading)} ${trunkPassed()?`<span class="pill gold">${esc(TRUNK.badge)}</span>`:""}</h3>` + parts.map(([k,v])=>`<div class="q">${esc(k)}</div><div class="a">${v&&String(v).trim()?esc(v):`<span class="empty">${esc(UI0.empty)}</span>`}</div>`).join("");
+}
+function trunkLogLi(){ if(!S.trunk) return ""; const L=trunkLevels(); return `<li>${esc(TU.logName)}${esc(UI0.colon)}${["L1","L2","L3","L4"].map(k=>k+(L[k]?"✓":"-")).join(" ")}</li>`; }
 
 /* ---------- pass rules (four levels of internalization) ---------- */
 function levels(id){
@@ -257,7 +437,7 @@ function roundDone(id, r){
     case 5: return levels(id).L1 && levels(id).L4;
   }
 }
-function unlocked(id){ return S.free || id===1 || passed(id-1); }
+function unlocked(id){ return S.free || trunkPassed() || id===1 || passed(id-1); }
 function isDim(id){ const st=S.isl[id]; return st && st.passedAt && (Date.now()-(st.lastReview||st.passedAt) > 7*DAY); }
 function checkPass(id){
   const st=I(id);
@@ -274,17 +454,19 @@ function checkPass(id){
 /* ---------- routing ---------- */
 let view = {name:"map"};
 function go(name, id){ view = {name, id}; if(id) I(id); render(); window.scrollTo(0,0); location.hash = id? name+"/"+id : name; }
-function fromHash(){ const [n,i]=location.hash.slice(1).split("/"); if(n==="island" && +i && (unlocked(+i))) view={name:n,id:+i}; else if(["map","guide","book","log"].includes(n)) view={name:n}; }
+function fromHash(){ const [n,i]=location.hash.slice(1).split("/"); if(n==="island" && +i && (unlocked(+i))) view={name:n,id:+i}; else if(["map","trunk","guide","book","log"].includes(n)) view={name:n}; }
 function render(){
   document.querySelectorAll("header nav button").forEach(b=>b.classList.toggle("on", b.dataset.v===view.name));
   const app=$("#app");
   if (view.name==="island") app.innerHTML = islandView(view.id);
+  else if (view.name==="trunk") app.innerHTML = trunkView();
   else if (view.name==="guide") app.innerHTML = guideView();
   else if (view.name==="book") app.innerHTML = bookView();
   else if (view.name==="log") app.innerHTML = logView();
   else app.innerHTML = mapView();
   stats();
   if (view.name==="island"){ bindPomoCtx(); checkPass(view.id); }
+  if (view.name==="trunk") trunkCheck();
 }
 function stats(){
   $("#sBadge").textContent = ISLANDS.filter(d=>passed(d.id)).length;
@@ -293,17 +475,16 @@ function stats(){
 
 /* ---------- sea chart ---------- */
 function mapView(){
-  const n = ISLANDS.filter(d=>passed(d.id)).length;
   const dims = ISLANDS.filter(d=>isDim(d.id));
   return `
   <h2>Chart of the Model Sea</h2>
   <p class="lead">You are an apprentice AI tamer. The people of the kingdom want to use AI, but don't dare trust it. On every island lives a \"failure monster\" — a real way AI goes wrong. <b>There is only one way to beat it: be able to explain why it happens.</b></p>
-  ${n===0 && !S.isl[1] ? `<div class="card"><b>First time here?</b> Spend two minutes on <a href="#guide" onclick="go('guide');return false">How to play</a>, then set sail from the Harbor of Beginnings. Each island takes about 6 pomodoros (about 3 hours with breaks) and can be spread over several days.</div>`:""}
   ${dims.length? `<div class="card" style="border-color:var(--warn)"><b>Knowledge castle eroding:</b> ${dims.map(d=>esc(d.name)).join(", ")} not reviewed for over 7 days.<button class="btn small coral" onclick="repair(${dims[0].id})">Repair: answer one question</button></div>`:""}
   <div class="legend"><span class="pill">Locked</span><span class="pill warn">In progress</span><span class="pill gold">Cleared</span><span class="pill">Greyed out = needs review</span>
     <label style="margin-left:auto"><input type="checkbox" ${S.free?"checked":""} onchange="S.free=this.checked;save();render()"> Free mode (unlock everything — for instructors preparing)</label></div>
-  <div class="map">
-  ${ISLANDS.map(d=>{
+  <div class="map">${trunkCard()}${ISLANDS.map(islCard).join("")}</div>`;
+}
+function islCard(d){
     const st=S.isl[d.id], ok=passed(d.id), un=unlocked(d.id), dim=isDim(d.id);
     const doneN = st ? ROUNDS.filter((r,i)=>roundDone(d.id,i)).length : 0;
     return `<button class="isl ${ok?"passed":""} ${dim?"dim":""}" ${un?"":"disabled"} onclick="go('island',${d.id})" aria-label="Week ${d.id}: ${esc(d.name)}">
@@ -312,10 +493,10 @@ function mapView(){
       <span class="nm">${esc(d.name)}</span>
       <span class="bs">Boss: ${esc(d.boss)}</span>
       <span class="tp">${esc(d.topic)}</span>
+      ${d.symptom&&!d.final?`<span class="tp"><i>${esc(t(UI0.symptomLine,{s:d.symptom}))}</i></span>`:""}
       <span class="foot">${ok?`<span class="pill gold">Cleared</span>`: un? (st?`<span class="pill warn">${doneN}/6 rounds</span>`:`<span class="pill">Ready to sail</span>`) : `<span class="pill">Locked</span>`}
       ${dim?`<span class="pill warn">Needs repair</span>`:""}</span>
-    </button>`;}).join("")}
-  </div>`;
+    </button>`;
 }
 
 /* ---------- island ---------- */
@@ -366,6 +547,7 @@ function roundView(id, r){
     return `${head("P2 Decode","Principle breakdown","After reading the principle, put the causal chain in order to build your own principle map.")}
     ${st.p1.locked||st.p1.choice!=null ? `<div class="result ${st.p1.choice===p.answer?"ok":"bad"}">Answer: <b>${esc(p.options[p.answer])}</b><br>Your pick in P1: ${esc(p.options[st.p1.choice]??"(not answered)")}${st.p1.choice===p.answer?" → Prediction correct.":" → Prediction wrong — good. Read the principle below, then write in P3 where you got stuck."}</div>`:""}
     <div class="card"><ul class="principle">${d.principle.map(x=>`<li>${x}</li>`).join("")}</ul></div>
+    ${d.update? `<div class="card"><b>${esc(UI0.updTitle)}</b><div class="muted">${esc(UI0.updNote)}</div><ul class="principle upd">${d.update.map(x=>`<li>${x}</li>`).join("")}</ul></div>`:""}
     <h3>Build the principle map</h3>
     <p class="muted">Click the cards below in causal order. Made a mistake? Press \"Reset\".</p>
     <div class="grid2"><div><div class="muted">To place</div><div class="chainpool">${pool.map(i=>`<button class="chip" onclick="pickChain(${id},${i})">${esc(d.chain[i])}</button>`).join("")||`<span class="empty">All placed</span>`}</div></div>
@@ -534,6 +716,7 @@ function guideView(){
     <div class="card"><b>The Feynman technique</b> handles <i>real understanding</i>: on every island you explain the idea in words a 12-year-old would understand. Wherever you get stuck is a gap.</div>
     <div class="card"><b>You need</b>: any AI chat tool (to run the lab prompts), this page, and a bit of honesty.</div>
   </div>
+  <h3>${esc(TRUNK.ui.heading)}</h3><div class="card">${esc(TRUNK.ui.sub)} ${esc(TRUNK.ui.skipNote)}</div>
   <h3>6 rounds per island = 6 pomodoros</h3>
   <div class="card"><ol>
     <li><b>P1 Scout</b>: read the puzzle; write your prediction and reasoning first.</li>
@@ -575,12 +758,14 @@ function bookView(){
       ${it("My prediction and reasoning", st.p1.reason)}${it("Lab: result", st.p3.result)}${it("Lab: why the gap", st.p3.gap)}
       ${it("One-minute explanation", st.p5.final||st.p4.text)}${it("Analogy", st.p5.analogy)}${it("Where the analogy breaks down", st.p5.limit)}${it("Black swan reasoning", st.swan)}`;
   }).join("");
+  const w0 = trunkBook(false);
   return `<div class="row" style="justify-content:space-between"><h2>My spellbook</h2><div class="row"><button class="btn" onclick="exportMd()">Download Markdown</button><button class="btn ghost" onclick="window.print()">Print</button></div></div>
   <p class="lead">Every prediction, explanation and analogy you write is collected here. It's yours — take it with you when you graduate.</p>
-  <div class="card book">${rows || '<p class="empty">Nothing here yet. Set sail from the Harbor of Beginnings.</p>'}</div>`;
+  <div class="card book">${(w0 + rows) || '<p class="empty">Nothing here yet. Set sail from the Harbor of Beginnings.</p>'}</div>`;
 }
 function exportMd(){
   let md = "# My spellbook (Context Islands)\n\n";
+  md += trunkBook(true);
   ISLANDS.filter(d=>S.isl[d.id]).forEach(d=>{ const st=I(d.id);
     md += `## Island ${d.id} · ${d.name}${passed(d.id)?` (badge: ${d.badge})`:""}\n\n`;
     if (d.final){ FINAL_ROUNDS.forEach(f=>f.fields.forEach(x=>{ md+=`### ${x[1]}\n\n${st.f[x[0]]||"(not written)"}\n\n`; })); return; }
@@ -599,7 +784,7 @@ function logView(){
   <div class="grid2">
     <div class="card"><b>Pomodoros</b><p>Completed: <b>${S.pomos}</b>.</p><b>Interruptions</b>
       ${top.length? `<ul>${top.map(([r,n])=>`<li>${esc(r)}: ${n}×</li>`).join("")}</ul><p class="muted">Your most common distraction is the first one to remove next time.</p>` : `<p class="muted">Nothing logged yet.</p>`}</div>
-    <div class="card"><b>Island status</b><ul>${ISLANDS.map(d=>{const L=S.isl[d.id]?levels(d.id):null; return `<li>${esc(d.name)}: ${L?["L1","L2","L3","L4"].map(k=>k+(L[k]?"✓":"・")).join(" "):"Not started"}</li>`;}).join("")}</ul></div>
+    <div class="card"><b>Island status</b><ul>${trunkLogLi()}${ISLANDS.map(d=>{const L=S.isl[d.id]?levels(d.id):null; return `<li>${esc(d.name)}: ${L?["L1","L2","L3","L4"].map(k=>k+(L[k]?"✓":"・")).join(" "):"Not started"}</li>`;}).join("")}</ul></div>
   </div>
   <div class="card"><b>Backup and moving</b><p class="muted">Progress is stored only in this browser on this computer. Export it before switching computers or clearing browsing data.</p>
     <div class="row"><button class="btn" onclick="download('context-islands-progress.json', JSON.stringify(S,null,1), 'application/json')">Export progress</button>
@@ -646,6 +831,7 @@ function logInt(r){ S.interrupts.push({reason:r, t:Date.now(), ctx:P.ctx}); save
 
 /* ---------- boot ---------- */
 window.addEventListener("hashchange", ()=>{ fromHash(); render(); });
+$("#navTrunk").textContent = TRUNK.ui.week;
 fromHash(); render(); pomoDraw();
 if (window.innerWidth < 720){ $("#pomo").classList.add("mini"); $("#pFold").textContent="Expand"; }
 </script>

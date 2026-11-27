@@ -82,8 +82,6 @@ PAIRS = [
     ("<h2>模型之海航海圖</h2>", "<h2>Chart of the Model Sea</h2>"),
     ('<p class="lead">你是一名「AI 馴服師學徒」。王國的人想用 AI，卻不敢信任它。每座島上住著一隻「失效怪物」——一種真實的 AI 失敗方式。<b>打贏的方法只有一個：講得出它為什麼會發生。</b></p>',
      '<p class="lead">You are an apprentice AI tamer. The people of the kingdom want to use AI, but don\'t dare trust it. On every island lives a \\"failure monster\\" — a real way AI goes wrong. <b>There is only one way to beat it: be able to explain why it happens.</b></p>'),
-    ('<b>第一次來？</b> 先花兩分鐘看「<a href="#guide" onclick="go(\'guide\');return false">怎麼玩</a>」，再從初始之港出發。每座島約 6 顆番茄鐘（含休息約 3 小時），可以分幾天完成。',
-     '<b>First time here?</b> Spend two minutes on <a href="#guide" onclick="go(\'guide\');return false">How to play</a>, then set sail from the Harbor of Beginnings. Each island takes about 6 pomodoros (about 3 hours with breaks) and can be spread over several days.'),
     ('<b>知識城堡風化中：</b>${dims.map(d=>esc(d.name)).join("、")} 超過 7 天沒複習。', '<b>Knowledge castle eroding:</b> ${dims.map(d=>esc(d.name)).join(", ")} not reviewed for over 7 days.'),
     ('repair(${dims[0].id})">修城：答一題</button>', 'repair(${dims[0].id})">Repair: answer one question</button>'),
     ('<span class="pill warn">進行中</span>', '<span class="pill warn">In progress</span>'),
@@ -315,6 +313,9 @@ PAIRS = [
     # ---- 通用短詞（放最後）----
     ('<span class="pill gold">已通關</span>', '<span class="pill gold">Cleared</span>'),
     ('<span class="pill">未解鎖</span>', '<span class="pill">Locked</span>'),
+    # ---- 第 0 週樹幹（新文字都在各語言的 data.js：TRUNK、UI0、CARD_EXTRA；這裡只有程式註解）----
+    ("/* 第 0 週 */", "/* week 0 */"),
+    ("/* ---------- 第 0 週：樹幹（先量、先弄壞，再給一句話和四層） ---------- */", "/* ---------- week 0: the trunk (measure and break first, then one sentence and four layers) ---------- */"),
 ]
 
 CJK = re.compile(r"[　-〿一-鿿＀-￯]")

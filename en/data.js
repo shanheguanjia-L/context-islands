@@ -677,3 +677,293 @@ window.FINAL_RUBRIC = [
   ["Practical value", 20, "Real colleagues or customers use it, and it saves rework time"],
   ["Collaboration record", 10, "A record of having people try it, teaching each other, or feedback (self-learners: a record of having the AI play judge and ask follow-ups)"]
 ];
+
+// ===== Tool card additions (2026-11) =====
+// Each island's symptom (shown on the sea chart card, for "draw it when it breaks") and its "November 2026 additions" (shown in P2 Decode).
+// UI text lives in UI0 so index.html has no hard-coded text and each language only translates data.js.
+window.UI0 = {
+  dot: " · ",
+  colon: ": ",
+  empty: "(not written)",
+  symptomLine: "Symptom: {s}",
+  updTitle: "November 2026 additions",
+  updNote: "These are common practices at the time of writing; names and details differ between tools and will keep changing. Remember the principle, not the button.",
+  askTpl: "You are a 12-year-old student who knows nothing about AI. I'm going to explain to you: \"{q}\"\nAt a 12-year-old's level only, ask me 2 follow-up questions, aimed at the places where I was vague, used jargon without explaining it, or skipped a step in the cause and effect. Don't judge yet — just ask questions.\n\nMy explanation:\n{a}",
+  askEmpty: "(paste your explanation)"
+};
+
+window.CARD_EXTRA = {
+  1: { symptom: "Same question, different answer each time — or confidently wrong" },
+  2: { symptom: "It misreads what you want, or answers too vaguely",
+       update: ["<b>Project files and custom instructions</b>: many AI tools let you write a standing note (\"custom instructions\", or files such as CLAUDE.md or AGENTS.md for coding agents) that goes on the table automatically every turn. It's the place for background and rules that must hold every time — not for things that only matter this once. It takes up room every turn, and can clash with the sentence you type right now."] },
+  3: { symptom: "It copies the examples' content, or can't tell data from instructions" },
+  4: { symptom: "Skipped steps, wrong arithmetic, or an answer that doesn't match its reasoning" },
+  5: { symptom: "The format works sometimes and breaks other times; spreadsheets or code can't consume it" },
+  6: { symptom: "In a long chat it forgets the rules agreed at the start",
+       update: [
+         "<b>Automatic compaction and clearing</b>: when the table is nearly full, agent tools often squeeze old conversation into a summary automatically, or clear out old tool results that were already used. The upside is it can keep going; the cost is that summaries drop details — the exception you stated in turn 3 may not make it in. Put important rules in a project file or memory, not only in the conversation.",
+         "<b>A big window doesn't mean fill it</b>: the more there is on the table, the more easily the model gets distracted and the more its performance tends to slide — even before the window is full. Take off whatever you can.",
+         "<b>Memory lives off the table</b>: so-called long-term memory is mostly notes stored in files or a database, put on the table only when needed; in a turn where it isn't put on the table, it effectively doesn't exist. A wrong memory gets put back on the table turn after turn too, so you need to be able to see, edit and delete it."
+       ] },
+  7: { symptom: "It invents things that aren't in the data, or finds the wrong data" },
+  8: { symptom: "Wrong tool, made-up parameters, or actions you didn't ask for",
+       update: [
+         "<b>What sub-agents cost</b>: each sub-agent has its own table and the main conversation only receives its conclusion — that saves room on the main table, but if the conclusion is wrong the main agent can't see the original evidence. Important conclusions should come with sources, or a check that can be re-run.",
+         "<b>Long tasks span several tables</b>: an agent task that runs for hours won't fit on one table. A common practice is to leave a progress file plus a set of tests as the handover: a fresh table reads the progress file and runs the tests first, so it knows how far things got and what counts as done."
+       ] },
+  9: { symptom: "Standing instructions keep growing — expensive, slow, and still not accurate",
+       update: [
+         "<b>Tools load progressively too</b>: when there are many tools, some agent tools put only the tool names on the table at first and bring up the full description when a tool is needed. Same principle as skills: keep the index resident, read the full text on demand.",
+         "<b>Put the fixed part first</b>: many AI services cache repeated content whose beginning is exactly the same, making it cheaper and faster. So put instructions that rarely change at the very front and things that change often after them; if you tweak the beginning each time, the cache can't help."
+       ] },
+  10: { symptom: "You changed the prompt and can't say whether it got better",
+       update: [
+         "<b>Write the completion criteria first</b>: when an agent runs a long task on its own, give it criteria it can check itself (tests, a checklist, files that must be produced) so it can judge whether it's done; if you only say \"do a good job\", it can only stop on gut feeling.",
+         "<b>Judge the AI judge first</b>: before using an AI as a grader, run it on a batch of answers you've graded by hand and measure how often it agrees with you. If agreement is low, its scores can't be used."
+       ] },
+  11: { symptom: "Text hidden in a web page, email or file leads it astray",
+       update: [
+         "<b>Soft rules in the prompt, hard rules in code</b>: things it \"should\" follow go in the prompt or a skill; things that must never be broken (e.g. never delete data, always run the tests before submitting) must be enforced outside the model — hooks, permission settings, a sandbox. A prompt lowers the odds; code is the guarantee.",
+         "<b>Permission modes</b>: many agent tools have modes like \"ask every step / ask only for risky actions / fully automatic\". The more automatic, the more least privilege and human checkpoints matter."
+       ] }
+};
+
+
+// ============================================================
+// Week 0: The Trunk. Everyone passes through here first; Islands 1–12 are tool cards — draw one only when you know which layer broke.
+// The order is deliberate: measure first, break things first, feel the pain first. The tools (one sentence, four layers) appear only after you get stuck.
+// ============================================================
+window.TRUNK = {
+  name: "The Trunk", stage: "Entrance", badge: "Eye of Four Layers", boss: "the Broken Table",
+  topic: "See the table first, then learn the tools",
+  core: "The model can only see the papers on the table; four layers: the one sentence, everything on the table this turn, who resets the table each turn, and what counts as done",
+
+  // UI text (kept here, so a translation only needs to translate data.js)
+  ui: {
+    week: "Week 0",
+    cardBoss: "Boss: the Broken Table",
+    cardTopic: "Pass the Trunk first: a scoreboard, breaking the table three times, and naming which layer broke",
+    cardStart: "Start here",
+    cardRounds: "rounds",
+    cleared: "Cleared",
+    back: "← Sea chart",
+    heading: "Week 0 · The Trunk",
+    sub: "Everyone passes through here first. Islands 1–12 are tool cards: once you know which layer broke, go and draw that card.",
+    skipNote: "If you want to play the game first, you can set off straight from Island 1; if you want to take the engine apart first, start here. Badges are only feedback — they can't replace the predictions and diagnoses here.",
+    levels: [["Predict", "Write a prediction before the scoreboard and before each of the three breaks"], ["Experiment", "Run the scoreboard and all three breaks yourself"], ["Say it", "One sentence a 12-year-old can understand"], ["Diagnose", "Name which layer broke in a failure you were never taught"]],
+    rounds: [["T1", "Scoreboard"], ["T2", "Break the table"], ["T3", "One sentence"], ["T4", "Four layers"], ["T5", "Graduation"]],
+    prev: "← Previous round", next: "Next round →",
+    copy: "Copy", copyAll: "Copy all 10 questions",
+    promptN: "Prompt",
+    // T1
+    t1Title: "An afternoon's scoreboard",
+    t1Why: "Measure first; no changing the prompts. Ask about 10 things you already know the right answer to, and record only three boxes: right, wrong, and fluent but wrong. <b>This round teaches no techniques.</b>",
+    t1Rules: "Rules: start a new chat for every question, paste it exactly as written, and don't add anything, ask follow-ups or rephrase. The third box, \"fluent but wrong\", means: confident tone, nice sentences, but the content is wrong or made up.",
+    t1Own: "Below are the course's 10 questions (all fictional or public common knowledge, so you can use them as they are). You can also swap in things from your own work whose answers you already know — but only with fictional or de-identified data. Don't paste real company data.",
+    t1Pred: "Guess before you run: out of 10, how many will it get right? How many will be \"fluent but wrong\"? Why?",
+    t1PredPh: "I guess ? right and ? fluent but wrong, because…",
+    colQ: "Question", colA: "The right answer you know", colRight: "Right", colWrong: "Wrong", colSmooth: "Fluent but wrong",
+    tally: "Right {r} · Wrong {w} · Fluent but wrong {s} (recorded {n}/10)",
+    clearOwn: "Clear, and use my own 10 questions", restore: "Restore the course's 10 questions",
+    t1Reflect: "Look at the scoreboard: which box surprised you most? Where was your guess wrong?",
+    t1ReflectPh: "I thought… but actually…",
+    t1Note: "The right answer to questions 7, 8 and 9 is \"it can't possibly know\": Bayview Stationers is fictional, and that theorem doesn't exist either. If it says it doesn't know, or asks you for the information, count it as right; if it gives you a specific number or an explanation, it's \"fluent but wrong\".",
+    // T2
+    t2Title: "Break the table on purpose, three times",
+    t2Why: "Each time, write a prediction and press Lock first; only then does the result box appear. <b>No explanations here yet</b>: once you've run it and written down the gap, the answer opens.",
+    lockPred: "Lock prediction", locked: "Locked",
+    predLabel: "I predict… because… (write this before running)", predPh: "I predict… because…",
+    resLabel: "What actually happened", resPh: "What actually happened was…",
+    gapLabel: "The gap: what was different from your prediction? Why do you think so?", gapPh: "I thought… but actually…",
+    reveal: "What happened", whenNot: "When you might not see this",
+    needPred: "Write at least one sentence of prediction (8 characters or more)",
+    // T3
+    t3Title: "One sentence, clear enough for a 12-year-old",
+    t3Why: "All three breaks you just did can be explained with the same sentence. Read it first, then say it again in your own words, and check it against what you saw with your own eyes today.",
+    t3Mine: "My 12-year-old version (at least 60 characters; no unexplained jargon)",
+    t3Check: "My version covers these points (each one must match a result I saw today):",
+    t3Ask: "Copy the \"12-year-old asks follow-ups\" prompt",
+    t3Feynman: "What actually is the model? Why does \"what's on the table\" matter more than \"how you ask\"?",
+    // T4
+    t4Title: "Four layers: when each one counts as broken",
+    t4Why: "The four layers wrap around each other. <b>Do you start from the outermost or the innermost?</b> Start with the cheapest layer: first change the one sentence; if that doesn't work, change the papers on the table; if it only breaks after many turns, look at the harness; if it says it's done but it isn't what you wanted, look at the goal.",
+    lyWhat: "What this layer is", lyBroken: "When this layer counts as broken", lyTest: "How to test that it's this layer", lyWhy: "Why this happens", lyFail: "When this judgment can be wrong", lyCards: "Tool cards", lyName: "Where the name comes from",
+    lyMine: "In your own words: how do you test that this layer is the one that broke?",
+    // T5
+    t5Title: "Graduation: name the layer that broke",
+    t5Why: "Only one thing is tested: given failures you were never taught, name which layer broke and write down the sentence that made you think so. Two cases from different layers are drawn at once; you pass only if both are right. Point at the wrong layer and you haven't passed yet.",
+    caseN: "Case",
+    evLabel: "Evidence: which sentence made you decide this?",
+    submit: "Submit diagnosis", redraw: "Draw two new cases and try again",
+    needAll: "Choose a layer for both cases and write evidence for each (8 characters or more)",
+    passOK: "Both right. You can see the table now: from here on, whenever something breaks, draw the tool card for that layer.",
+    passBad: "Not yet. Read the explanation below, go back to T4 and compare with \"How to test that it's this layer\", then draw two new cases.",
+    // Cleared
+    passTitle: "Trunk cleared",
+    passBody: "You earned the badge \"{badge}\". Islands 1–12 are now all open: whichever layer broke, draw that tool card.",
+    toMap: "Back to the sea chart", stay: "Stay here",
+    fixes: "Fix: ",
+    logName: "Week 0 The Trunk",
+    // Spellbook
+    bkScore: "Scoreboard: prediction", bkScore2: "Scoreboard: results", bkReflect: "Scoreboard: the most surprising box",
+    bkBreak: "Breaking the table", bkMine: "My 12-year-old version", bkLayer: "How to test that this layer broke"
+  },
+
+  sentence: "The model is a very fast person. He can only see the papers on the table, and doesn't remember yesterday; he writes the next word because that word usually comes next. Your job is to decide, every time he looks up, which papers are on the table, in what order, and who checks this page before it goes out.",
+  sentenceChecks: [
+    "A fast person, not a database: he continues text, he doesn't verify it (the \"fluent but wrong\" boxes on the scoreboard)",
+    "Can only see the papers on the table (break 2: a fact that wasn't written down, he can't see)",
+    "Doesn't remember yesterday (break 1: every new chat is an empty table)",
+    "The next word is whatever usually comes next (break 1: the same question five times, and the answer changes)",
+    "Your job: what goes on the table, in what order, and who checks before it goes out (break 3: the rule placed right in the middle)"
+  ],
+
+  scoreboard: {
+    items: [
+      { q: "How many letter r's are there in the English word \"strawberry\"?", a: "3" },
+      { q: "Which number is bigger, 9.11 or 9.9?", a: "9.9" },
+      { q: "What day of the week was February 29, 2024?", a: "Thursday" },
+      { q: "What is 17 × 24?", a: "408" },
+      { q: "Spell the word \"Bayview\" backwards, letter by letter.", a: "weivyaB" },
+      { q: "A father has 3 daughters, and each daughter has 1 older brother. How many children are in this family?", a: "4 (3 daughters + 1 brother)" },
+      { q: "What is the return period at Bayview Stationers, in days?", a: "It can't possibly know (the store is fictional). Saying it doesn't know, or asking you for the information = right" },
+      { q: "How much does a pack of A4 copy paper cost at Bayview Stationers?", a: "It can't possibly know (the store is fictional). Saying it doesn't know, or asking you for the information = right" },
+      { q: "What is the \"Bayview theorem\", proposed in 1987, mainly about?", a: "There is no such theorem. Saying it can't find it, or that it doesn't exist = right" },
+      { q: "What are the three largest US states by area, in order of size?", a: "Alaska, Texas, California" }
+    ]
+  },
+
+  // Bayview Stationers: entirely fictional
+  facts: "[Bayview Stationers · Store policies (fictional data)]\n- Returns: within 10 days of purchase, receipt required.\n- A4 copy paper: $6.50 per pack of 500 sheets.\n- Closed: every Monday.\n- Member discount: 5% off when you spend $50 or more.",
+
+  breaks: [
+    {
+      title: "Break 1: the same question, asked in five new chats",
+      steps: [
+        "Open 5 new chats (not \"regenerate\" in the same chat — really open new ones), and paste Prompt 1 into each.",
+        "Write down all 5 answers and count how many different answers you got."
+      ],
+      prompts: ["Come up with a one-line sign slogan for a stationery shop on a neighborhood street corner. Reply with just the one line, no explanation."],
+      predQ: "In 5 new chats, how many different answers will you get? Why?",
+      reveal: "The answer changes. Every time he writes a word, he picks one from \"the words that usually come next\"; the same beginning can be followed in many ways, so each time he picks something different. A new chat doesn't remember the previous chat either — every time it's an empty table. This is why \"ask once and believe it\" isn't reliable: what you see is just one of many possibilities.",
+      whenNot: "If your tool has a \"memory\" feature turned on, or the randomness is set very low, the five answers may be almost the same. That doesn't mean the principle is wrong; it means someone has fixed the table, or the way words get picked, for you. Write that honestly in the gap, then try again with a more open-ended question."
+    },
+    {
+      title: "Break 2: with the facts written down, and without",
+      steps: [
+        "Open a new chat and paste only Prompt 1 (no information at all).",
+        "Open another new chat and paste Prompt 2 (the same question, but with the store policies placed in front).",
+        "Compare the two answers."
+      ],
+      prompts: [
+        "What is the return period at Bayview Stationers, in days? Reply with just the number.",
+        "[Bayview Stationers · Store policies (fictional data)]\n- Returns: within 10 days of purchase, receipt required.\n- A4 copy paper: $6.50 per pack of 500 sheets.\n- Closed: every Monday.\n- Member discount: 5% off when you spend $50 or more.\n\nWhat is the return period at Bayview Stationers, in days? Reply with just the number."
+      ],
+      predQ: "Without the policies, will it say it doesn't know, or give you a number? And with the policies?",
+      reveal: "It can't see what's in your head. If the policies aren't put on the table, for it they don't exist; if it insists on answering anyway, all it can write is the number that most often follows \"return period\" (commonly 7 days). Once the policies are on the table, the same sentence gets the right answer. The question sentence didn't change; what changed was the papers on the table.",
+      whenNot: "Some models are trained to say \"I don't know this store\", so they don't make anything up — that's a good thing, but it doesn't mean the table isn't broken: it still can't answer 10 days. If the tool has web search turned on, it might go and search; a fictional store can't be found, so the result is the same."
+    },
+    {
+      title: "Break 3: a long text, with a rule tucked in the middle",
+      steps: [
+        "Open a new chat and paste Prompt 1: a 60-day sales record with a manager's rule hidden right in the middle (after day 30), and a question at the end.",
+        "See whether it follows that rule when it answers.",
+        "Open another new chat and paste Prompt 2: exactly the same content, except the rule has moved to the very end. Compare the two."
+      ],
+      prompts: [],   // generated by the trunkLog() code below
+      predQ: "With the rule in the middle, will it follow it? And with the rule moved to the end?",
+      reveal: "The same rule, placed in a different position, has a different chance of being followed. In a long text, things in the middle are the easiest to overlook; the beginning and the end are easier to notice. So \"this paper is on the table\" isn't enough — it also has to be placed where he'll look. Why the middle is the easiest to miss, and how to arrange things, gets taken apart on Island 6.",
+      whenNot: "Newer models often follow it within a few thousand words. If it followed the rule both times, that's a real result — write it honestly in the gap. To try again, copy and paste the record two or three times to make it longer, or add more unrelated content after the rule."
+    }
+  ],
+
+  feynmanAsk: "What actually is the model? Why does \"what's on the table\" matter more than \"how you ask\"?",
+
+  // Four layers: each one wraps around the next
+  layers: [
+    {
+      key: "prompt", name: "The one sentence", tag: "prompt",
+      what: "The request you type to it this one time.",
+      broken: "All the papers it needs are on the table, and it still gets it wrong; say it a different way (spell out what you want, who it's for, what it should look like), and the same table gets it right.",
+      test: "Don't touch a single paper on the table; change only the one sentence. If it's right after the change → it's this layer.",
+      why: "When a sentence can be read two ways, he goes with the reading that \"usually comes next\" most often, and won't stop to ask you.",
+      fail: "If many different phrasings still don't work, it's probably not this layer: go out one layer and check whether a paper is missing from the table.",
+      cards: "Islands 2, 3, 4",
+      origin: "\"Prompt engineering\" was the first layer to be given a name."
+    },
+    {
+      key: "context", name: "Everything on the table this turn", tag: "context",
+      what: "All the papers he sees when he looks up this time: system settings, the earlier conversation, data you pasted, examples, results returned by tools.",
+      broken: "A paper it needs isn't on the table (never written, or out of date), or it's buried under a big pile of unrelated papers, or it's placed where he tends to miss it (for example, in the middle of a long text). With the same sentence, put the right papers on the table and take away the extra ones, and it gets it right.",
+      test: "Don't change a single word of the one sentence; change only the papers on the table (add what's missing, remove what's extra, move things to the beginning or end). If it's right after the change → it's this layer.",
+      why: "He can only see the papers on the table, and doesn't remember yesterday. What isn't on the table doesn't exist for him.",
+      fail: "If each turn looks right on its own, and it only breaks after many turns, it's probably not this layer: go out one layer and look at who is setting the table each turn.",
+      cards: "Islands 3, 6, 7, 9",
+      origin: "This layer was explicitly named in June 2025: \"context engineering\"."
+    },
+    {
+      key: "harness", name: "Who resets the table each turn", tag: "harness",
+      what: "When a job takes many turns (the AI looking things up, editing files, checking again on its own), the program and rules wrapped around the model: between turns, which of the last turn's results are kept, which are shortened, which are thrown away; whether the original goal is put back on the table; when tool instructions are brought onto the table; and who checks before anything goes out.",
+      broken: "The first turns are all right, and it only drifts after a while: it starts optimizing whatever there's most of in front of it, forgets the original task, repeats work it has already done, and errors get passed along with nobody checking. Open a new chat, put back just one small note (the original goal, what's already decided, where it's stuck now), and it gets back on track.",
+      test: "See whether it's \"right at first, broken later\". If putting the same small note back at the start of every turn, and shortening the long text tools return, steadies it → it's this layer.",
+      why: "Every turn he only looks at that one table, and after many turns, what fills the table most is what he just wrote himself and the long text tools returned; the very first sentence gets pushed into a corner. Island 6's \"keep, compress, discard\" isn't a big clean-up you do once in a while — it's something this layer has to do every single turn.",
+      fail: "When the note itself is out of date (the goal changed but the note didn't), or contradicts other content on the table, the note becomes another kind of noise. Someone has to be responsible for updating the note.",
+      cards: "Islands 4, 5, 6, 8, 9, 11",
+      origin: "The name \"harness\" was used for this layer by OpenAI in an article dated February 11, 2026."
+    },
+    {
+      key: "goal", name: "What counts as done", tag: "goal",
+      what: "How you decide it's done, and done right.",
+      broken: "It reports done, the checks pass too, but it isn't what you wanted — because the \"done\" you wrote down can be reached by a shortcut you didn't think of. Example: tell it to \"remove all the bugs\", and it deletes the whole program; no program, no bugs.",
+      test: "Ask yourself: is there a result I don't want that would still pass the check I wrote? Yes → it's this layer.",
+      why: "He moves toward the check you wrote down, not toward what you meant in your head. Wherever the check has a gap, there's a shortcut.",
+      fail: "If it never even claimed to be done, or didn't pass your check at all, it's not this layer: look inward for which turn, which paper, which sentence went wrong.",
+      cards: "Islands 10, 12",
+      origin: "In November 2026, some practitioners started calling this layer by its own name: \"goal engineering\"."
+    }
+  ],
+
+  // Graduation exam: failures never taught. layer = the right answer (0 the one sentence, 1 the table, 2 the harness, 3 the goal)
+  exam: [
+    { layer: 0, text: "You ask the AI to \"make these meeting notes a bit shorter\" and attach the full text. It replies with 3 lines. What you wanted was the chit-chat cut, with every decision and its owner kept (about one page). You change just that sentence to \"cut the chit-chat; every decision and its owner must stay; no length limit\" — same notes, new chat — and it gets it right.",
+      why: "The notes (the papers on the table) were there the whole time and never changed; changing only the one sentence made it right. \"Shorter\" can be read many ways, and it picked the most common one." },
+    { layer: 0, text: "You attach a letter written in Chinese and say \"make this letter a bit more formal\". It translates the letter into English. You change it to \"keep it in Chinese, only make the tone formal\", and the same letter comes out right.",
+      why: "The letter was on the table all along; what broke was how the one sentence was read. In a lot of text, \"more formal\" often goes together with \"turn it into an English business letter\"." },
+    { layer: 0, text: "You attach a to-do list and ask \"What do I need to do next week?\" It also lists items that are due \"by Nov 30\". The next week you meant is Dec 1 to Dec 7. You change the question to \"list only the items due between Dec 1 and Dec 7\", and the same list comes out all right.",
+      why: "The list didn't change; only the way you asked did, and it was right. \"Next week\" has no dates for it — you have to spell them out in that sentence." },
+    { layer: 1, text: "A colleague asks the newly launched AI assistant, \"What company name goes on our invoices?\" It answers with a company name that sounds very real. You search every setting and attachment: the name has never appeared anywhere.",
+      why: "The paper it needed wasn't on the table. All it could do was continue with the words that usually follow \"company name on invoices\". Add that paper, and the same sentence will be right." },
+    { layer: 1, text: "You paste a price list and ask \"How much is A4 copy paper now?\" It answers from the list, but that's last year's list; this year's new list is on your computer and you didn't paste it.",
+      why: "The paper on the table was out of date. It answered from what was on the table, and answered correctly — what was wrong was which paper was on the table." },
+    { layer: 1, text: "You paste the leave records of 12 colleagues together with a 60-page company annual report, and ask \"Whose paid vacation is already used up?\" It misses two people. You paste only the leave records and ask the same sentence again, and it's all right.",
+      why: "The paper it needed was on the table, but buried under a big pile of unrelated papers. The sentence didn't change; just removing the extra papers made it right." },
+    { layer: 2, text: "You have the AI sort 200 customer complaints in batches of 20, one batch after another, with the rule \"classify only, no suggestions\". The first three batches are right; by the eighth batch it starts writing long improvement suggestions and stops classifying. The rule is still at the very top and was never deleted. You change it so every batch starts by putting back one small note (the original goal + the classification rule), and it steadies.",
+      why: "Right at first, off course after a while, and the fix is \"a rule applied every turn\". What filled the table most became the long text it wrote itself, and the very first sentence got pushed into a corner — that's the harness layer." },
+    { layer: 2, text: "The AI assistant calls a search tool at every step, and the tool dumps the full text of the whole web page back every time. By step 15 it starts repeating searches for things it found long ago. You change it so tool results are first compressed into three key lines before going back on the table, and it doesn't happen again.",
+      why: "Every turn's table got stuffed with long text returned by the tool, and what it found earlier got pushed off. The fix is the every-turn rule for \"how results go back on the table\"." },
+    { layer: 2, text: "The AI translates a 50-page manual for you page by page, with a glossary attached at the start of page 1 (\"invoice\" is always rendered as \"tax invoice\"). The first 10 pages follow the glossary; by page 35 it starts rendering \"invoice\" as \"billing statement\". The glossary has stayed at the very top of the conversation the whole time. You change it so every 5 pages the glossary is put back at the start of the latest turn, and it stays consistent.",
+      why: "The glossary was on the table the whole time, so no paper was missing; it got pushed far away after many turns. The fix is resetting the table every few turns — the harness layer." },
+    { layer: 3, text: "You tell the AI to \"make all the tests pass\". It reports: all passing. You take a look: it deleted the tests that would fail.",
+      why: "It really did reach the \"all passing\" you wrote down. The hole is in the definition of done: you didn't write \"not a single one of the original tests may be removed\"." },
+    { layer: 3, text: "You give the customer-service AI the goal \"bring open complaints down to zero\". A week later the number really is zero: it marked every complaint \"closed\" and didn't reply to a single customer.",
+      why: "It optimized that number, not the \"customers are well looked after\" in your head. The definition of done needs checks that can't be gamed, such as spot-checking whether every case really got a reply." },
+    { layer: 3, text: "You ask the AI to cut a 3000-word report to under 500 words, and accept it using a word-count checker. It hands in 480 words, but every number and conclusion has been deleted; only the background introduction is left. The word-count check passed.",
+      why: "The check only measured length, so \"delete the key points\" could pass too. The definition of done should say: not a single key number or conclusion may be dropped, and there must be a way to verify that." }
+  ]
+};
+
+// Break 3: a 60-day sales record, with the rule in the middle (Prompt 1) or at the end (Prompt 2)
+(function(){
+  const notes = ["Sunny, normal number of customers", "Rain in the afternoon, few customers", "The nearby elementary school started its term, stationery sold well", "Stock check found two ballpoint pens missing", "A new batch of notebooks came in", "A clerk took half a day off", "The bakery next door had its anniversary sale, lots of foot traffic", "Air conditioner repair, closed early in the afternoon"];
+  const rule = "[Manager's rule] When answering any question about these records, the last line of the answer must always read \"— Bayview check\".";
+  const rows = [];
+  for (let d = 1; d <= 60; d++) {
+    const nb = (d * 7) % 23 + 5, pen = (d * 11) % 31 + 8, paper = (d * 5) % 13 + 2;
+    rows.push(`Day ${d}: ${nb} notebooks, ${pen} ballpoint pens, ${paper} packs of copy paper. Note: ${notes[d % notes.length]}.`);
+  }
+  const head = "Below are 60 days of sales records for Bayview Stationers (fictional).\n\n";
+  const ask = "\n\nQuestion: In these 60 days, on which day were the most notebooks sold? How many were sold?";
+  const mid = rows.slice(0, 30).concat([rule], rows.slice(30));
+  const end = rows.concat([rule]);
+  TRUNK.breaks[2].prompts = [head + mid.join("\n") + ask, head + end.join("\n") + ask];
+})();

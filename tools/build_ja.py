@@ -282,6 +282,8 @@ JA = [
     # 字數門檻換算（日文 1.5 倍）、網站圖示路徑（沿用英文）
     'const LEN_SCALE = 1.5; /* length thresholds are set in Chinese characters; the same content takes about 1.5x as many characters in Japanese (measured on this course\'s own translations) */',
     None,
+    # iPhone「加入主畫面」的短名稱
+    '<meta name="apple-mobile-web-app-title" content="コンテキスト群島">',
 ]
 
 OUT = build_en.ROOT / "ja"

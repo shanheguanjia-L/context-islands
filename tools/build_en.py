@@ -319,6 +319,8 @@ PAIRS = [
     # ---- 字數門檻換算、網站圖示（子資料夾要往上一層找 icons/）----
     ('const LEN_SCALE = 1; /* 字數門檻用中文字數訂。同樣的內容，英文約 3 倍字元、日文約 1.5 倍（用本課程三語譯文實測），英日版由產生腳本改這個倍數 */', 'const LEN_SCALE = 3; /* length thresholds are set in Chinese characters; the same content takes about 3x as many characters in English (measured on this course\'s own translations) */'),
     ('href="icons/', 'href="../icons/'),
+    # ---- iPhone「加入主畫面」的短名稱（沒有這行會拿整串 <title>，被截斷）----
+    ('<meta name="apple-mobile-web-app-title" content="脈絡群島">', '<meta name="apple-mobile-web-app-title" content="Context Islands">'),
 ]
 
 CJK = re.compile(r"[　-〿一-鿿＀-￯]")

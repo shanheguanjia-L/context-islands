@@ -25,11 +25,11 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
+          gh label create 演化看板 --color 0E8A16 --description "每週自動更新的課程待辦" 2>/dev/null || true
           num=$(gh issue list --label 演化看板 --state open --json number --jq '.[0].number // empty')
           if grep -q '^NOTHING_TO_DO$' board.md; then
-            [ -n "$num" ] && gh issue close "$num" --comment "這週沒有待辦，先關掉。"
+            if [ -n "$num" ]; then gh issue close "$num" --comment "這週沒有待辦，先關掉。"; fi
             exit 0
           fi
-          gh label create 演化看板 --color 0E8A16 --description "每週自動更新的課程待辦" 2>/dev/null || true
           if [ -n "$num" ]; then gh issue edit "$num" --body-file board.md
           else gh issue create --title "演化看板：課程該處理的事" --label 演化看板 --body-file board.md; fi

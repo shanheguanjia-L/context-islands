@@ -155,6 +155,17 @@ ALLOWED = ["Read", "Edit", "Write", "Glob", "Grep", "WebSearch", "WebFetch",
            "Bash(python3 tools/build_all.py)", "Bash(python3 tools/check.py)", "Bash(python3 tools/check.py *)"]
 
 
+def touched_files(porcelain):
+    """git status --porcelain 的輸出 → 改到的檔名清單（改名取新名字）。"""
+    return [ln[3:].split(" -> ")[-1] for ln in porcelain.splitlines() if len(ln) > 3]
+
+
+def forbidden(paths):
+    """起草只准改內容；程式、工具、CI 由人改（翻譯同步紀錄 i18n.lock.json 例外）。"""
+    return [p for p in paths if p == "index.html" or p.startswith(".github/")
+            or (p.startswith("tools/") and p != "tools/i18n.lock.json")]
+
+
 def git_identity():
     name = sh(["git", "config", "user.name"]).stdout.strip()
     email = sh(["git", "config", "user.email"]).stdout.strip()
@@ -185,8 +196,9 @@ def draft(item, model=None, base="main"):
         except subprocess.TimeoutExpired:
             entry.update(result="failed", why=f"AI 超過 {AI_TIMEOUT_S} 秒沒做完")
             return entry
-        changed = sh(["git", "-c", "core.quotepath=false", "status", "--porcelain"], cwd=wt).stdout.strip()
-        if not changed:
+        # 不能先 strip：porcelain 每行開頭的空白是狀態欄位，去掉會把第一個檔名截掉一個字
+        changed = sh(["git", "-c", "core.quotepath=false", "status", "--porcelain"], cwd=wt).stdout.rstrip("\n")
+        if not changed.strip():
             entry.update(result="no_change", why="AI 沒有改任何檔案（可能判斷不該改，見 ai_tail）")
             return entry
         # 體檢用工作區裡的 check.py，結果才是那個分支的
@@ -199,10 +211,8 @@ def draft(item, model=None, base="main"):
         if res["errors"]:
             entry.update(result="discarded", why="體檢沒過：" + "；".join(res["errors"][:5]))
             return entry
-        touched = [ln[3:].split(" -> ")[-1] for ln in changed.splitlines()]
-        # 起草只准改內容；程式、工具、CI 由人改（翻譯同步紀錄 i18n.lock.json 例外）
-        bad = [p for p in touched if p == "index.html" or p.startswith(".github/")
-               or (p.startswith("tools/") and p != "tools/i18n.lock.json")]
+        touched = touched_files(changed)
+        bad = forbidden(touched)
         if bad:
             entry.update(result="discarded", why="動到不該動的檔：" + "、".join(bad))
             return entry
